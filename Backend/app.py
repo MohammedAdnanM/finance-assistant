@@ -132,3 +132,31 @@ def anomaly():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+###forecasting
+@app.route("/forecast")
+def forecast():
+    conn = get_connection()
+    df = pd.read_sql("SELECT date, amount FROM transactions", conn)
+
+    if df.empty:
+        return jsonify({"forecast": []})
+
+    df["date"] = pd.to_datetime(df["date"])
+
+    # last 90 days
+    recent = df[df["date"] >= (pd.Timestamp.today() - pd.Timedelta(days=90))]
+
+    daily_avg = recent.groupby("date")["amount"].sum().mean()
+    daily_avg = round(daily_avg, 2)
+
+    forecast = []
+    start = pd.Timestamp.today()
+
+    for i in range(1, 31):
+        forecast.append({
+            "date": (start + pd.Timedelta(days=i)).strftime("%Y-%m-%d"),
+            "amount": daily_avg
+        })
+
+    return jsonify({"forecast": forecast})
