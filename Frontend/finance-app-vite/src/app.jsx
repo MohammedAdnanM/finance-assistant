@@ -225,13 +225,7 @@ export default function App() {
           </button>
         </nav>
     </div>
-        <button
-          onClick={logoutHandler}
-          className="mt-auto flex items-center justify-center gap-2 text-red-400 hover:text-red-500 transition"
-        >
-          <ArrowLeftStartOnRectangleIcon className="h-5 min-w-[20px]" />
-          <span className="hidden group-hover:inline">Logout</span>
-        </button> 
+        
 
       </aside>
 
@@ -245,21 +239,37 @@ export default function App() {
 
   {/* TOP ROW */}
   <div className="flex items-center justify-between">
-    <div>
-     <h2 className="text-2xl font-semibold tracking-tight">Welcome Back 👋</h2>
-      <p className="text-gray-400 mt-1">Here's a summary of your finances</p>
+  {/* Left */}
+  <div>
+    <h2 className="text-2xl font-semibold tracking-tight">Welcome Back 👋</h2>
+  </div>
+
+  {/* Right */}
+  <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500">Month</span>
+      <input
+        type="month"
+        value={month}
+        onChange={(e) => setMonth(e.target.value)}
+        className="h-9 px-3 rounded-lg bg-gray-800 border border-gray-700 text-sm"
+      />
     </div>
 
-    <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-500">Month</span>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="h-9 px-3 rounded-lg bg-gray-800 border border-gray-700 text-sm" />
-      </div>
-
+    <button
+      onClick={logoutHandler}
+      className="flex items-center gap-2 px-3 py-2
+                 rounded-lg text-sm
+                 text-red-400 hover:text-red-500
+                 hover:bg-red-500/10 transition"
+    >
+      <ArrowLeftStartOnRectangleIcon className="h-4" />
+      <span className="hidden md:inline">Logout</span>
+    </button>
   </div>
+</div>
+
+    
 
   {/* BUDGET */}
   <div className="flex items-center justify-between gap-8">
