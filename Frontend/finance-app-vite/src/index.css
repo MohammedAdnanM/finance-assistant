@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@import "tailwindcss/preflight";
+
+.input {
+  @apply p-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-transparent;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition;
+}
