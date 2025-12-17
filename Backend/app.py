@@ -130,33 +130,42 @@ def recommend_budget_api():
 def anomaly():
     return jsonify({"anomalies": detect_anomalies()})
 
-if __name__ == "__main__":
-    app.run(debug=True)
-
 ###forecasting
 @app.route("/forecast")
 def forecast():
     conn = get_connection()
     df = pd.read_sql("SELECT date, amount FROM transactions", conn)
 
+    # No transactions at all
     if df.empty:
         return jsonify({"forecast": []})
 
-    df["date"] = pd.to_datetime(df["date"])
+    # Convert date safely
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna()
 
-    # last 90 days
-    recent = df[df["date"] >= (pd.Timestamp.today() - pd.Timedelta(days=90))]
+    # Group by date and calculate daily spend
+    daily = df.groupby("date")["amount"].sum()
 
-    daily_avg = recent.groupby("date")["amount"].sum().mean()
-    daily_avg = round(daily_avg, 2)
+    # If still empty
+    if daily.empty:
+        return jsonify({"forecast": []})
+
+    # Average daily spending
+    daily_avg = float(daily.mean())
 
     forecast = []
-    start = pd.Timestamp.today()
+    start = pd.Timestamp.today().normalize()
 
     for i in range(1, 31):
         forecast.append({
             "date": (start + pd.Timedelta(days=i)).strftime("%Y-%m-%d"),
-            "amount": daily_avg
+            "amount": round(daily_avg, 2)
         })
 
     return jsonify({"forecast": forecast})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
