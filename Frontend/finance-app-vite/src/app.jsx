@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { success, error } from "./utils/toast";
 import {
   ResponsiveContainer,
   LineChart, Line, BarChart, Bar,
@@ -13,6 +14,9 @@ import {
 } from "@heroicons/react/24/solid";
 
 export default function App() {
+
+  const [editingId, setEditingId] = useState(null);
+
   const [forecast, setForecast] = useState([]);
   const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
@@ -60,33 +64,65 @@ export default function App() {
   }
 
   async function addTransaction(e) {
-    e.preventDefault();
-    if (!date || !category || !amount) return;
+      e.preventDefault();
 
-    await fetch(`${API_BASE}/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        date: date.startsWith(month) ? date : `${month}-01`,
+      if (!date || !category || !amount) {
+        error("All fields required");
+        return;
+      }
+
+      const payload = {
+        date,
         category,
         amount: parseFloat(amount)
-      })
-    });
+      };
 
-    setDate("");
-    setCategory("");
-    setAmount("");
-    fetchTransactions();
-    getPrediction();
-    getAnomalies();
-  }
+      const url = editingId
+        ? `${API_BASE}/update/${editingId}`
+        : `${API_BASE}/add`;
+
+      const method = editingId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        error("Operation failed");
+        return;
+      }
+
+      success(editingId ? "Transaction updated" : "Transaction added");
+
+      setDate("");
+      setCategory("");
+      setAmount("");
+      setEditingId(null);
+
+      fetchTransactions();
+      getAnomalies();
+      getPrediction();
+    }
+
 
   async function deleteTransaction(id) {
-    await fetch(`${API_BASE}/delete/${id}`, { method: "DELETE" });
-    fetchTransactions();
-    getPrediction();
-    getAnomalies();
+  const res = await fetch(`${API_BASE}/delete/${id}`, {
+    method: "DELETE"
+  });
+
+  if (!res.ok) {
+    error("Delete failed");
+    return;
   }
+
+  success("Transaction deleted");
+  fetchTransactions();
+  getAnomalies();
+  getPrediction();
+}
+
 
   async function getPrediction() {
     const res = await fetch(`${API_BASE}/predict`);
@@ -400,10 +436,103 @@ export default function App() {
 
             <button type="submit"
               className="h-12 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold">
-              Add
+              {editingId ? "Update" : "Add"}
             </button>
+
+            {editingId && (
+              <button type="button"onClick={() => {
+                  setEditingId(null);
+                  setDate(`${month}-01`);
+                  setCategory("");
+                  setAmount("");
+                }}
+                className="h-12 px-4 bg-gray-600 hover:bg-gray-700 rounded-xl"
+              >
+                Cancel
+              </button>
+            )}
+
           </form>
         </section>
+
+    {/* TRANSACTIONS */}
+        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-8">
+          <h3 className="text-2xl font-semibold mb-4">Transactions</h3>
+
+          <table className="w-full border border-gray-800 rounded-xl overflow-hidden">
+            <thead className="bg-gray-800 text-gray-300">
+              <tr>
+                <th className="p-4">Date</th>
+                <th className="p-4">Category</th>
+                <th className="p-4">Amount</th>
+                <th className="p-4 text-center">Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="p-6 text-center text-gray-500">
+                    No transactions yet
+                  </td>
+                </tr>
+              ) : (
+                transactions.map(t => (
+                 <tr
+                        key={t.id}
+                        className={`border-t border-gray-800 hover:bg-gray-800/40 ${
+                          anomalies.includes(t.id) ? "bg-red-900/30" : ""
+                        }`}
+                      >
+                        {/* DATE */}
+                        <td className="p-4">{t.date}</td>
+
+                        {/* CATEGORY */}
+                        <td className="p-4">{t.category}</td>
+
+                        {/* AMOUNT */}
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-300 font-semibold">₹ {t.amount}</span>
+
+                            {anomalies.includes(t.id) && (
+                              <span className="text-xs px-2 py-0.5 rounded-full
+                                              bg-red-600/20 text-red-400 border border-red-600/40">
+                                Anomaly
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* ACTION */}
+                        <td className="p-4 text-center">
+                          <button
+                            onClick={() => {
+                              setEditingId(t.id);
+                              setDate(t.date);
+                              setCategory(t.category);
+                              setAmount(t.amount);
+                            }}
+                            className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 rounded-xl mr-2"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            onClick={() => deleteTransaction(t.id)}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded-xl"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+
+                ))
+              )}
+            </tbody>
+          </table>
+        </section>
+
 
         {/* PDF */}
         <div className="flex justify-end mt-2">
@@ -490,60 +619,7 @@ export default function App() {
               )}
             </section>
 
-        {/* TRANSACTIONS */}
-        <section className="bg-[#111827] border border-gray-800 rounded-2xl p-8">
-          <h3 className="text-2xl font-semibold mb-4">Transactions</h3>
-
-          <table className="w-full border border-gray-800 rounded-xl overflow-hidden">
-            <thead className="bg-gray-800 text-gray-300">
-              <tr>
-                <th className="p-4">Date</th>
-                <th className="p-4">Category</th>
-                <th className="p-4">Amount</th>
-                <th className="p-4 text-center">Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {transactions.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="p-6 text-center text-gray-500">
-                    No transactions yet
-                  </td>
-                </tr>
-              ) : (
-                transactions.map(t => (
-                 <tr
-                      key={t.id}
-                      className={`border-t border-gray-800 hover:bg-gray-800/40 ${
-                        anomalies.includes(t.id) ? "bg-red-900/30" : ""
-                      }`}
-                    >
-
-                    <td className="p-4">{t.date}</td>
-                    <td className="p-4">{t.category}</td>
-                    <td className="p-4 flex items-center gap-2">
-                        <span className="text-blue-300 font-semibold">₹ {t.amount}</span>
-
-                        {anomalies.includes(t.id) && (
-                          <span className="text-xs px-2 py-0.5 rounded-full
-                                          bg-red-600/20 text-red-400 border border-red-600/40">
-                            Anomaly
-                          </span>
-                        )}
-                      </td>
-                    <td className="p-4 text-center">
-                      <button onClick={() => deleteTransaction(t.id)}
-                        className="px-4 py-1 bg-red-600 hover:bg-red-700 rounded-xl">
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </section>
+        
 
       </main>
     </div>

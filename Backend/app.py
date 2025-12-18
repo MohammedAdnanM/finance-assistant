@@ -165,6 +165,21 @@ def forecast():
 
     return jsonify({"forecast": forecast})
 
+##### Update transaction
+@app.route("/update/<int:id>", methods=["PUT"])
+def update_transaction(id):
+    data = request.json
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE transactions
+        SET date=?, category=?, amount=?
+        WHERE id=?
+    """, (data["date"], data["category"], data["amount"], id))
+
+    conn.commit()
+    return jsonify({"status": "updated"}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
