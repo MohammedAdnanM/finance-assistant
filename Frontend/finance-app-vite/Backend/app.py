@@ -130,146 +130,33 @@ def recommend_budget_api():
 def anomaly():
     return jsonify({"anomalies": detect_anomalies()})
 
+if __name__ == "__main__":
+    app.run(debug=True)
+
 ###forecasting
 @app.route("/forecast")
 def forecast():
     conn = get_connection()
     df = pd.read_sql("SELECT date, amount FROM transactions", conn)
 
-    # No transactions at all
     if df.empty:
         return jsonify({"forecast": []})
 
-    # Convert date safely
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna()
+    df["date"] = pd.to_datetime(df["date"])
 
-    # Group by date and calculate daily spend
-    daily = df.groupby("date")["amount"].sum()
+    # last 90 days
+    recent = df[df["date"] >= (pd.Timestamp.today() - pd.Timedelta(days=90))]
 
-    # If still empty
-    if daily.empty:
-        return jsonify({"forecast": []})
-
-    # Average daily spending
-    daily_avg = float(daily.mean())
+    daily_avg = recent.groupby("date")["amount"].sum().mean()
+    daily_avg = round(daily_avg, 2)
 
     forecast = []
-    start = pd.Timestamp.today().normalize()
+    start = pd.Timestamp.today()
 
     for i in range(1, 31):
         forecast.append({
             "date": (start + pd.Timedelta(days=i)).strftime("%Y-%m-%d"),
-            "amount": round(daily_avg, 2)
+            "amount": daily_avg
         })
 
     return jsonify({"forecast": forecast})
-
-##### Update transaction
-@app.route("/update/<int:id>", methods=["PUT"])
-def update_transaction(id):
-    data = request.json
-    conn = get_connection()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE transactions
-        SET date=?, category=?, amount=?
-        WHERE id=?
-    """, (data["date"], data["category"], data["amount"], id))
-
-    conn.commit()
-    return jsonify({"status": "updated"}), 200
-
-### Budget Optimization###
-@app.route("/optimize-budget", methods=["GET"])
-def optimize_budget():
-    conn = get_connection()
-    df = pd.read_sql("SELECT date, category, amount FROM transactions", conn)
-
-    if df.empty:
-        return jsonify([])
-
-    df["date"] = pd.to_datetime(df["date"])
-    last_30 = df[df["date"] >= pd.Timestamp.today() - pd.Timedelta(days=30)]
-
-    result = []
-
-    for category in df["category"].unique():
-        avg = df[df["category"] == category]["amount"].mean()
-        recent = last_30[last_30["category"] == category]["amount"].sum()
-
-        if recent > avg * 1.2:
-            result.append({
-                "category": category,
-                "message": f"Overspending detected. Reduce by ₹{round(recent - avg, 2)}"
-            })
-
-    return jsonify(result)
-
-###Necessity score###
-@app.route("/necessity-score", methods=["POST"])
-def necessity_score():
-    data = request.json
-    score = round((count / total) * 100, 2)
-
-    if data["type"] == "need":
-        score += 40
-    else:
-        score += 10
-
-    if data["frequency"] == "high":
-        score += 30
-    elif data["frequency"] == "medium":
-        score += 20
-    else:
-        score += 10
-
-    if data["amount"] < data["budget"] * 0.1:
-        score += 30
-    else:
-        score += 10
-
-    decision = "BUY" if score > 70 else "DELAY" if score > 40 else "AVOID"
-
-    return jsonify({
-        "score": score,
-        "decision": decision
-    })
-
-###category efficiency algorithm###
-@app.route("/category-efficiency", methods=["GET"])
-def category_efficiency():
-    conn = get_connection()
-    df = pd.read_sql("SELECT category, amount FROM transactions", conn)
-
-    results = []
-    grouped = df.groupby("category")
-
-    for category, data in grouped:
-        total = data["amount"].sum()
-        count = len(data)
-
-        if total == 0:
-            level = "Low"
-        else:
-            avg = total / count  # average spend per transaction
-
-            if avg <= 500:
-                level = "High"
-            elif avg <= 1500:
-                level = "Medium"
-            else:
-                level = "Low"
-
-        results.append({
-            "category": category,
-            "efficiency": level
-        })
-
-    return jsonify(results)
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
-

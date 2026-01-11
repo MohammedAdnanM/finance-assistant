@@ -53,6 +53,11 @@ export default function App() {
 	const [spent, setSpent] = useState(0);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 
+	const [optimizations, setOptimizations] = useState([]);
+	const [efficiency, setEfficiency] = useState([]);
+	const [necessityResult, setNecessityResult] = useState(null);
+
+
 	const categoriesList = [
 		"Food",
 		"Fuel",
@@ -76,6 +81,32 @@ export default function App() {
 		localStorage.removeItem("user");
 		setLoggedIn(false);
 	}
+	// /* ---------------- analytics and budget optimization ---------------- */
+			async function fetchOptimization() {
+			const res = await fetch(`${API_BASE}/optimize-budget`);
+			const data = await res.json();
+			setOptimizations(data);
+			}
+
+			async function fetchEfficiency() {
+			const res = await fetch(`${API_BASE}/category-efficiency`);
+			const data = await res.json();
+			setEfficiency(data);
+			}
+
+			async function checkNecessity() {
+			const res = await fetch(`${API_BASE}/necessity-score`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+				type: "want",
+				frequency: "low",
+				amount: Number(amount || 0),
+				budget
+				})
+			});
+			setNecessityResult(await res.json());
+			}
 
 	/* ---------------- API ---------------- */
 	async function fetchTransactions() {
@@ -125,6 +156,9 @@ export default function App() {
 		fetchTransactions();
 		getAnomalies();
 		getPrediction();
+		fetchOptimization();
+		fetchEfficiency();
+
 	}
 
 	//   async function deleteTransaction(id) {
@@ -242,6 +276,8 @@ export default function App() {
 			getAnomalies();
 			getRecommendedBudget();
 			getForecast();
+			fetchOptimization();
+			fetchEfficiency();
 			setDate(`${month}-01`);
 		}
 	}, [loggedIn, month]);
@@ -464,6 +500,57 @@ dark:bg-gray-800 dark:text-white dark:border-gray-700"
 				</section>
 
 				{/* </section> */}
+				{/* SMART INSIGHTS */}
+				<section className="bg-gray-100 border border-gray-300
+				dark:bg-[#111827] dark:border-gray-800
+				rounded-2xl p-8 space-y-6">
+
+				<h3 className="text-2xl font-semibold">Smart Spending Insights</h3>
+
+				{/* Budget Optimization */}
+				<div>
+					<h4 className="text-lg font-semibold text-purple-400">Budget Alerts</h4>
+					{optimizations.length === 0
+					? <p className="text-green-400">No overspending detected ✅</p>
+					: optimizations.map((o, i) => (
+						<p key={i} className="text-red-400">
+							⚠ {o.category}: {o.message}
+						</p>
+						))}
+				</div>
+
+				{/* Category Efficiency */}
+				<div>
+					<h4 className="text-lg font-semibold text-teal-400">
+						Category Efficiency
+					</h4>
+
+					{efficiency.map((e, i) => (
+						<p key={i} className={
+						e.efficiency === "High"
+							? "text-green-400"
+							: e.efficiency === "Medium"
+							? "text-yellow-400"
+							: "text-red-400"
+						}>
+						{e.category} → {e.efficiency}
+						</p>
+					))}
+					</div>
+
+
+				{/* Purchase Decision */}
+				<div>
+					<h4 className="text-lg font-semibold text-yellow-400">Purchase Decision</h4>
+					{necessityResult
+					? <p>{necessityResult.decision} (Score: {necessityResult.score})</p>
+					: <button
+						onClick={checkNecessity}
+						className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-xl">
+						Check Current Purchase
+						</button>}
+				</div>
+				</section>
 
 				{/* ADD TRANSACTION */}
 				<section

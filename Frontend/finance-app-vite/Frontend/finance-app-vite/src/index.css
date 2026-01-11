@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@reference utilities;
+
+
+.input {
+  @apply p-3 rounded-xl bg-gray-800 border border-gray-700 text-white;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition;
+}
+
+.stat-card {
+  @apply p-6 rounded-2xl text-white shadow-lg;
+}
+
+.stat-card h2 {
+  @apply text-3xl font-bold mt-2;
+}
+
+.blue { @apply bg-gradient-to-br from-blue-600 to-indigo-600; }
+.purple { @apply bg-gradient-to-br from-purple-600 to-fuchsia-600; }
+.green { @apply bg-gradient-to-br from-green-600 to-emerald-600; }
+.red { @apply bg-gradient-to-br from-red-600 to-rose-700; }
