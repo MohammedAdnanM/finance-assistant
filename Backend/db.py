@@ -1,3 +1,12 @@
+"""
+db.py - Database Configuration and Initialization
+
+Process: Manages SQLite database connection and schema setup.
+
+Main Functionality:
+  - get_connection(): Returns a database connection instance
+  - init_db(): Creates tables (transactions, budget, users) if they don't exist
+"""
 import sqlite3
 import os
 
@@ -14,6 +23,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
             date TEXT,
             category TEXT,
             amount REAL
@@ -24,6 +34,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS budget (
             month TEXT PRIMARY KEY,
             amount REAL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE,
+            password_hash TEXT
         )
     """)
 

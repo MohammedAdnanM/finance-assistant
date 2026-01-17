@@ -1,5 +1,6 @@
 flask
 flask-cors
+flask-jwt-extended
 pandas
 numpy
 scikit-learn

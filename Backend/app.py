@@ -1,5 +1,19 @@
+"""
+app.py - Main Flask Application Server
+
+Process: Central API server that handles all HTTP requests from the frontend.
+
+Main Functionality:
+  - User Authentication (Register, Login with JWT tokens)
+  - Transaction CRUD (Add, Read, Update, Delete)
+  - Budget Management (Set/Get monthly budgets)
+  - AI Insights (Predictions, Anomaly Detection, Forecasting)
+  - Financial Analytics (Category Efficiency, Budget Optimization)
+"""
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db
 from utils import detect_anomalies, recommend_budget
 
@@ -9,6 +23,10 @@ import pickle
 app = Flask(__name__)
 CORS(app)
 
+# SECURITY CONFIG
+app.config["JWT_SECRET_KEY"] = "super-secret-key-change-this-in-prod" 
+jwt = JWTManager(app)
+
 init_db()
 
 # Load model if exists
@@ -17,14 +35,56 @@ try:
 except:
     model = None
 
+# ---------------- AUTH ROUTES ---------------- #
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"msg": "Missing email or password"}), 400
+
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # Check if user exists
+    user = cur.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    if user:
+        return jsonify({"msg": "User already exists"}), 400
+
+    hashed = generate_password_hash(password)
+    cur.execute("INSERT INTO users (email, password_hash) VALUES (?, ?)", (email, hashed))
+    conn.commit()
+
+    return jsonify({"msg": "User created successfully"}), 201
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
+
+    conn = get_connection()
+    cur = conn.cursor()
+    user = cur.execute("SELECT id, password_hash FROM users WHERE email=?", (email,)).fetchone()
+
+    if not user or not check_password_hash(user[1], password):
+        return jsonify({"msg": "Bad email or password"}), 401
+
+    access_token = create_access_token(identity=str(user[0]))
+    return jsonify({"access_token": access_token}), 200
+
 @app.route("/delete/<int:id>", methods=["DELETE"])
+@jwt_required()
 def delete_tx(id):
+    user_id = int(get_jwt_identity())
     print("DELETE REQUEST RECEIVED FOR ID:", id)
 
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM transactions WHERE id=?", (id,))
+    cur.execute("DELETE FROM transactions WHERE id=? AND user_id=?", (id, user_id))
     conn.commit()
 
     print("ROWS AFFECTED:", cur.rowcount)
@@ -42,6 +102,7 @@ def delete_tx(id):
 
 ###month 
 @app.route("/budget", methods=["POST"])
+@jwt_required()
 def set_budget():
     data = request.json
     conn = get_connection()
@@ -52,6 +113,7 @@ def set_budget():
     return jsonify({"status":"ok"})
 
 @app.route("/budget/<month>")
+@jwt_required()
 def get_budget(month):
     conn = get_connection()
     cur = conn.cursor()
@@ -63,21 +125,25 @@ def get_budget(month):
 
 
 @app.route("/add", methods=["POST"])
+@jwt_required()
 def add_transaction():
+    user_id = int(get_jwt_identity())
     data = request.json
     conn = get_connection()
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO transactions (date, category, amount)
-        VALUES (?, ?, ?)
-    """, (data["date"], data["category"], data["amount"]))
+        INSERT INTO transactions (user_id, date, category, amount)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, data["date"], data["category"], data["amount"]))
 
     conn.commit()
     return jsonify({"status": "success"}), 200
 
 @app.route("/transactions", methods=["GET"])
+@jwt_required()
 def get_transactions():
+    user_id = int(get_jwt_identity())
     month = request.args.get("month")  # YYYY-MM
     conn = get_connection()
     cur = conn.cursor()
@@ -86,14 +152,14 @@ def get_transactions():
         rows = cur.execute("""
             SELECT id, date, category, amount
             FROM transactions
-            WHERE substr(date,1,7)=?
+            WHERE user_id=? AND substr(date,1,7)=?
             ORDER BY date
-        """, (month,)).fetchall()
+        """, (user_id, month,)).fetchall()
     else:
         rows = cur.execute("""
             SELECT id, date, category, amount
-            FROM transactions ORDER BY date
-        """).fetchall()
+            FROM transactions WHERE user_id=? ORDER BY date
+        """, (user_id,)).fetchall()
 
     return jsonify({
         "transactions": [
@@ -104,9 +170,11 @@ def get_transactions():
 
 
 @app.route("/predict")
+@jwt_required()
 def predict():
+    user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions", conn)
+    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
     if df.empty:
         return jsonify({"prediction":0})
 
@@ -117,9 +185,11 @@ def predict():
     return jsonify({"prediction": round(prediction,2)})
 
 @app.route("/recommend-budget")
+@jwt_required()
 def recommend_budget_api():
+    user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions", conn)
+    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
 
     recommended = recommend_budget(df)
     return jsonify({"recommended_budget": recommended})
@@ -127,14 +197,18 @@ def recommend_budget_api():
 
 ### Anomaly Highlight
 @app.route("/anomaly")
+@jwt_required()
 def anomaly():
-    return jsonify({"anomalies": detect_anomalies()})
+    user_id = int(get_jwt_identity())
+    return jsonify({"anomalies": detect_anomalies(user_id)})
 
 ###forecasting
 @app.route("/forecast")
+@jwt_required()
 def forecast():
+    user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions", conn)
+    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
 
     # No transactions at all
     if df.empty:
@@ -167,7 +241,9 @@ def forecast():
 
 ##### Update transaction
 @app.route("/update/<int:id>", methods=["PUT"])
+@jwt_required()
 def update_transaction(id):
+    user_id = int(get_jwt_identity())
     data = request.json
     conn = get_connection()
     cur = conn.cursor()
@@ -175,17 +251,19 @@ def update_transaction(id):
     cur.execute("""
         UPDATE transactions
         SET date=?, category=?, amount=?
-        WHERE id=?
-    """, (data["date"], data["category"], data["amount"], id))
+        WHERE id=? AND user_id=?
+    """, (data["date"], data["category"], data["amount"], id, user_id))
 
     conn.commit()
     return jsonify({"status": "updated"}), 200
 
 ### Budget Optimization###
 @app.route("/optimize-budget", methods=["GET"])
+@jwt_required()
 def optimize_budget():
+    user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, category, amount FROM transactions", conn)
+    df = pd.read_sql("SELECT date, category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
 
     if df.empty:
         return jsonify([])
@@ -209,6 +287,7 @@ def optimize_budget():
 
 ###Necessity score###
 @app.route("/necessity-score", methods=["POST"])
+@jwt_required()
 def necessity_score():
     data = request.json
     score = round((count / total) * 100, 2)
@@ -239,9 +318,11 @@ def necessity_score():
 
 ###category efficiency algorithm###
 @app.route("/category-efficiency", methods=["GET"])
+@jwt_required()
 def category_efficiency():
+    user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT category, amount FROM transactions", conn)
+    df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
 
     results = []
     grouped = df.groupby("category")
