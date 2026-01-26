@@ -1,12 +1,13 @@
 """
 utils.py - Utility Functions for Data Analysis
 
-Process: Provides helper functions for financial calculations and anomaly detection.
+Process: Provides helper functions for financial calculations, anomaly detection, and AI interactions.
 
-Main Functionality:
-  - load_data(): Loads all transactions from the database
-  - detect_anomalies(user_id): Identifies unusual spending patterns (2+ std deviations)
-  - recommend_budget(df): Calculates recommended budget based on 3-month average + 15%
+Updated Functionality:
+  - Gemini AI Coach: Integrated Google Generative AI for intelligent, context-aware financial advice.
+  - Anomaly Detection: Identifies unusual spending patterns using statistical outliers.
+  - Budget Optimization: Analyzes efficiency and suggests target monthly budgets.
+  - Pattern Matching: Fallback logic for basic financial queries.
 """
 import pandas as pd
 from db import get_connection
@@ -75,6 +76,21 @@ def recommend_budget(df):
     return round(avg_spend * 1.15, 2)
 
 
+import os
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Configure Gemini
+api_key = os.getenv("GEMINI_API_KEY")
+if api_key:
+    genai.configure(api_key=api_key)
+    # Using gemini-flash-latest for best availability
+    model = genai.GenerativeModel('gemini-flash-latest')
+else:
+    model = None
+
 def financial_coach_reply(user_id, message):
     conn = get_connection()
     df = pd.read_sql("SELECT date, category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
@@ -83,46 +99,51 @@ def financial_coach_reply(user_id, message):
         return "You haven't recorded any transactions yet! Try adding some expenses first so I can analyze your habits."
 
     df["date"] = pd.to_datetime(df["date"])
-    msg = message.lower()
     
-    # Intent 1: Specific Category Spending
-    categories = [c.lower() for c in df["category"].unique()]
-    for cat in categories:
-        if cat in msg:
-            cat_sum = df[df["category"].str.lower() == cat]["amount"].sum()
-            return f"You've spent a total of ₹{round(cat_sum, 2)} on {cat.capitalize()} across all recorded months."
+    # Analyze Data for Context
+    total_spent = df["amount"].sum()
+    top_cat = df.groupby("category")["amount"].sum().idxmax()
+    avg_daily = df.groupby("date")["amount"].sum().mean()
+    
+    # Prepare Context for Gemini
+    context = f"""
+    You are a professional Financial Coach. 
+    The user is asking: "{message}"
+    
+    Here is their recent financial data:
+    - Total Spending: ₹{total_spent}
+    - Biggest Category: {top_cat}
+    - Average Daily Spending: ₹{round(avg_daily, 2)}
+    - Detailed Categories: {df.groupby("category")["amount"].sum().to_dict()}
+    
+    Instructions:
+    1. Be encouraging and professional.
+    2. Use the data provided to give specific advice.
+    3. If they ask about a specific category or budget, prioritize that data.
+    4. Keep the response concise but insightful (max 3-4 sentences).
+    5. Always format currency as ₹.
+    """
 
-    # Intent 2: Budget Status
-    if "budget" in msg or "how am i doing" in msg:
-        this_month = pd.Timestamp.today().strftime("%Y-%m")
-        cur = conn.cursor()
-        budget_row = cur.execute("SELECT amount FROM budget WHERE month=?", (this_month,)).fetchone()
+    if model:
+        try:
+            response = model.generate_content(context)
+            return response.text
+        except Exception as e:
+            print(f"Gemini Error: {e}")
+            return "I'm having a bit of trouble reaching my AI brain, but I'm still here! Based on your history, you've spent the most on " + top_cat + "."
+    else:
+        # Original Rule-based fallback if no API key
+        msg = message.lower()
+        if "budget" in msg or "how am i doing" in msg:
+            this_month = pd.Timestamp.today().strftime("%Y-%m")
+            cur = conn.cursor()
+            budget_row = cur.execute("SELECT amount FROM budget WHERE month=?", (this_month,)).fetchone()
+            current_spent = df[df["date"].dt.to_period("M") == this_month]["amount"].sum()
+            if not budget_row:
+                return f"You haven't set a budget, but you've spent ₹{round(current_spent, 2)} so far."
+            budget = budget_row[0]
+            remaining = budget - current_spent
+            return f"You've spent ₹{round(current_spent, 2)} out of ₹{round(budget, 2)}."
         
-        current_spent = df[df["date"].dt.to_period("M") == this_month]["amount"].sum()
-        
-        if not budget_row:
-            return f"You haven't set a budget for this month yet, but you've spent ₹{round(current_spent, 2)} so far. You should set a target!"
-        
-        budget = budget_row[0]
-        remaining = budget - current_spent
-        
-        if remaining > 0:
-            return f"You're doing great! You've spent ₹{round(current_spent, 2)} out of your ₹{round(budget, 2)} budget. You still have ₹{round(remaining, 2)} left."
-        else:
-            return f"Heads up! You've already spent ₹{round(current_spent, 2)}, which is ₹{round(abs(remaining), 2)} over your ₹{round(budget, 2)} budget."
-
-    # Intent 3: Biggest Expense
-    if "biggest" in msg or "highest" in msg or "most" in msg:
-        top_cat = df.groupby("category")["amount"].sum().idxmax()
-        top_amt = df.groupby("category")["amount"].sum().max()
-        return f"Your biggest spending category overall is {top_cat}, where you've spent ₹{round(top_amt, 2)}."
-
-    # Intent 4: Prediction
-    if "predict" in msg or "future" in msg or "next month" in msg:
-        last_30 = df[df.date >= (pd.Timestamp.today() - pd.Timedelta(days=30))]
-        prediction = last_30.amount.mean() * 30
-        return f"Based on your last 30 days, I predict you'll spend about ₹{round(prediction, 2)} next month if your habits stay the same."
-
-    # Default fallback
-    return "I'm not quite sure how to answer that yet. You can ask me about your spending in a specific category, your budget status, or your biggest expense!"
+        return "Gemini API key not configured. I can only answer basic budget questions for now!"
 

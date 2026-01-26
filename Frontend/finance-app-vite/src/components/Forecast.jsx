@@ -21,7 +21,7 @@ export default function Forecast({ forecast }) {
     <section
       className="bg-white border border-gray-200
                    dark:bg-[#111827] dark:border-gray-800
-                   rounded-2xl p-8 mx-8 mb-10 shadow-sm"
+                   rounded-2xl p-8 shadow-sm"
     >
       <div className="flex items-center gap-3 mb-6">
          <div className="h-8 w-1 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>

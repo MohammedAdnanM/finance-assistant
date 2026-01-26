@@ -24,7 +24,7 @@ export default function SmartInsights({
     <section
       className="bg-gray-50 border border-gray-200
                  dark:bg-[#111827] dark:border-gray-800
-                 rounded-2xl p-8 space-y-8 shadow-sm mb-10 mx-8"
+                 rounded-2xl p-8 space-y-8 shadow-sm"
     >
       <div className="flex items-center gap-3 mb-6">
          <div className="h-8 w-1 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>

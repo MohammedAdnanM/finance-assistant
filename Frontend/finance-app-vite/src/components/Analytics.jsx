@@ -34,7 +34,7 @@ export default function Analytics({ transactions }) {
     <section
       className="bg-white border text-gray-900 border-gray-200
                    dark:bg-[#111827] dark:border-gray-800
-                   rounded-2xl p-8 mx-8 mb-10 shadow-sm space-y-8"
+                   rounded-2xl p-8 shadow-sm space-y-8"
     >
       <div className="flex items-center gap-3">
          <div className="h-8 w-1 bg-gradient-to-b from-green-500 to-teal-400 rounded-full"></div>

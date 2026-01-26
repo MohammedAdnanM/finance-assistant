@@ -1,3 +1,12 @@
+/**
+ * ChatCoach Component
+ * Process: Interactive floating AI assistant that provides personalized financial coaching.
+ *
+ * Updated Functionality:
+ *  - AI Brain: Upgraded from rule-based response to Google Gemini Flash for deep intelligence.
+ *  - Premium UI: Floating glassmorphic interface with pulsating status indicators.
+ *  - Contextual Awareness: Sends user's real financial summaries to the AI for expert advice.
+ */
 import React, { useState, useRef, useEffect } from "react";
 import { 
     ChatBubbleLeftRightIcon, 
@@ -64,43 +73,46 @@ export default function ChatCoach() {
         <div className="fixed bottom-8 right-8 z-50">
             {/* CHAT WINDOW */}
             {isOpen && (
-                <div className="absolute bottom-20 right-0 w-[380px] h-[500px] bg-white dark:bg-[#111827] rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+                <div className="absolute bottom-24 right-0 w-[400px] h-[600px] glass rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-entry">
                     
                     {/* Header */}
-                    <div className="p-5 bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                                <SparklesIcon className="h-5 w-5" />
+                    <div className="p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 shadow-inner">
+                                <SparklesIcon className="h-6 w-6 text-indigo-200" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-sm">Financial Coach</h4>
-                                <p className="text-[10px] text-blue-100 uppercase tracking-widest font-bold">Powered by AI</p>
+                                <h4 className="font-black text-base tracking-tight italic">AI Financial Coach</h4>
+                                <div className="flex items-center gap-1.5 opacity-80">
+                                    <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse"></span>
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-indigo-100">Intelligent Active</p>
+                                </div>
                             </div>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
-                            <XMarkIcon className="h-5 w-5" />
+                        <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-90">
+                            <XMarkIcon className="h-6 w-6" />
                         </button>
                     </div>
 
                     {/* Messages Area */}
-                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar bg-gray-50/50 dark:bg-gray-900/50">
+                    <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar dark:bg-obsidian/80">
                         {messages.map((m, i) => (
-                            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} group animate-entry stagger-${(i % 4) + 1}`}>
                                 <div className={`flex gap-3 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    <div className={`mt-1 shrink-0`}>
+                                    <div className="mt-1 shrink-0">
                                         {m.role === 'assistant' ? 
-                                            <div className="h-8 w-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
+                                            <div className="h-9 w-9 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
                                                 <CpuChipIcon className="h-5 w-5" />
                                             </div> : 
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                                            <div className="h-9 w-9 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
                                                 <UserCircleIcon className="h-5 w-5" />
                                             </div>
                                         }
                                     </div>
-                                    <div className={`p-3 rounded-2xl text-sm ${
+                                    <div className={`p-4 rounded-[1.5rem] text-sm leading-relaxed ${
                                         m.role === 'user' 
-                                            ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-500/20' 
-                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'
+                                            ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-none shadow-xl shadow-indigo-500/10' 
+                                            : 'bg-white dark:bg-gray-800/80 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-white/5 shadow-sm'
                                     }`}>
                                         {m.content}
                                     </div>
@@ -108,30 +120,30 @@ export default function ChatCoach() {
                             </div>
                         ))}
                         {loading && (
-                            <div className="flex justify-start">
-                                <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl rounded-tl-none border border-gray-100 dark:border-gray-700 flex gap-1">
-                                    <div className="h-1.5 w-1.5 bg-gray-300 dark:bg-gray-600 rounded-full animate-bounce"></div>
-                                    <div className="h-1.5 w-1.5 bg-gray-300 dark:bg-gray-600 rounded-full animate-bounce delay-75"></div>
-                                    <div className="h-1.5 w-1.5 bg-gray-300 dark:bg-gray-600 rounded-full animate-bounce delay-150"></div>
+                            <div className="flex justify-start animate-pulse">
+                                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl rounded-tl-none border border-gray-100 dark:border-white/5 flex gap-1.5">
+                                    <div className="h-2 w-2 bg-indigo-400 rounded-full animate-bounce"></div>
+                                    <div className="h-2 w-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                                    <div className="h-2 w-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.5s]"></div>
                                 </div>
                             </div>
                         )}
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={sendMessage} className="p-4 bg-white dark:bg-[#111827] border-t border-gray-100 dark:border-gray-800">
-                        <div className="flex gap-2">
+                    <form onSubmit={sendMessage} className="p-6 bg-white/50 dark:bg-obsidian/90 backdrop-blur-2xl border-t border-gray-100 dark:border-white/5">
+                        <div className="flex gap-3">
                             <input 
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="Type your question..."
-                                className="flex-1 bg-gray-100 dark:bg-gray-800 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                placeholder="Ask about your budget..."
+                                className="flex-1 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500 transition-all dark:text-white dark:placeholder:text-gray-500 outline-none"
                             />
                             <button 
                                 type="submit"
-                                className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                                className="p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all active:scale-90 shadow-xl shadow-indigo-500/30"
                             >
-                                <PaperAirplaneIcon className="h-5 w-5" />
+                                <PaperAirplaneIcon className="h-6 w-6" />
                             </button>
                         </div>
                     </form>
@@ -141,19 +153,16 @@ export default function ChatCoach() {
             {/* TOGGLE BUTTON */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`h-16 w-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${
+                className={`h-20 w-20 rounded-[2rem] flex items-center justify-center shadow-[0_15px_40px_rgba(0,0,0,0.3)] transition-all duration-500 hover:scale-105 active:scale-90 relative group ${
                     isOpen 
-                        ? 'bg-gray-800 dark:bg-white text-white dark:text-gray-900 rotate-90' 
-                        : 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                        ? 'bg-obsidian-light text-white rotate-180' 
+                        : 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white animate-pulse-slow'
                 }`}
             >
-                {isOpen ? <XMarkIcon className="h-8 w-8" /> : <ChatBubbleLeftRightIcon className="h-8 w-8" />}
+                {isOpen ? <XMarkIcon className="h-10 w-10 text-indigo-300" /> : <ChatBubbleLeftRightIcon className="h-10 w-10 drop-shadow-lg" />}
                 
                 {!isOpen && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-white dark:border-gray-900"></span>
-                    </span>
+                    <div className="absolute inset-0 rounded-[2rem] ring-4 ring-indigo-500/20 group-hover:ring-indigo-500/40 transition-all"></div>
                 )}
             </button>
         </div>

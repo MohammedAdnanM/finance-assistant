@@ -1,13 +1,16 @@
 /**
  * Dashboard Component
  * Process: Main application controller. Manages state (transactions, budget, auth, predictions), fetches data from API, and orchestrates the display of all sub-components.
- * Main Functionality:
- *  - Fetches and manages global state (Transactions, Budget, Stats)
- *  - Orchestrates layout (Sidebar, Header, Content)
- *  - Handles API communication (CRUD operations)
+ *
+ * Updated Functionality:
+ *  - Premium Obsidian UI: Deep dark mode with indigo/teal gradients and glassmorphism.
+ *  - Micro-Animations: Staggered entrance animations and tactile feedback.
+ *  - Intelligent AI Coaching: Integrated with Google Gemini for context-aware financial advice.
+ *  - Optimized Layout: Zero-gap dual-column grid for streamlined data visualization.
+ *  - Robust Undo: Fault-tolerant transaction restoration with real-time UI notifications.
  */
 import React, { useEffect, useState } from "react";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 
 // Components
 // Components
@@ -153,24 +156,33 @@ export default function Dashboard({ logoutHandler }) {
         return;
     }
 
-    success(
-        <span>
-            Transaction deleted —
-            <button onClick={undoDelete} className="ml-2 underline text-white font-bold">
-            Undo
+    // Capture the ID of the toast to dismiss it later
+    const tId = toast.success(
+        <div className="flex items-center gap-3">
+            <span>Transaction deleted</span>
+            <button 
+                onClick={() => {
+                    undoDelete(tx, tId);
+                }} 
+                className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-500/20 transition-all active:scale-95"
+            >
+                Undo
             </button>
-        </span>
+        </div>,
+        { duration: 5000 }
     );
+
     getAnomalies();
     getPrediction();
   }
 
-  async function undoDelete() {
-    if (!lastDeleted) return;
+  async function undoDelete(txToRestore, tId) {
+    if (!txToRestore) return;
 
-    const res = await api.post("/add", lastDeleted);
+    const res = await api.post("/add", txToRestore);
 
     if (res && res.ok) {
+        if (tId) toast.dismiss(tId);
         setLastDeleted(null);
         fetchTransactions();
         success("Transaction restored");
@@ -271,7 +283,24 @@ export default function Dashboard({ logoutHandler }) {
 
       {/* CONTENT */}
       <main className="flex-1 overflow-y-auto">
-        <Toaster position="bottom-right" />
+        <Toaster 
+            position="bottom-right" 
+            toastOptions={{
+                className: 'glass !bg-obsidian !text-white border border-white/10 !rounded-2xl',
+                style: {
+                    background: '#161b22',
+                    color: '#fff',
+                    borderRadius: '1rem',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                },
+                success: {
+                    iconTheme: {
+                        primary: '#10b981',
+                        secondary: '#fff',
+                    },
+                },
+            }}
+        />
         
         {/* HEADER */}
         <Header 
@@ -292,54 +321,55 @@ export default function Dashboard({ logoutHandler }) {
             anomalies={anomalies}
         />
 
-        {/* FORM & INSIGHTS GRID */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-0 mb-8">
-            <TransactionForm 
-                addTransaction={addTransaction}
-                date={date}
-                setDate={setDate}
-                month={month}
-                category={category}
-                setCategory={setCategory}
-                amount={amount}
-                setAmount={setAmount}
-                showSuggestions={showSuggestions}
-                setShowSuggestions={setShowSuggestions}
-                categoriesList={categoriesList}
-                editingId={editingId}
-                cancelEdit={cancelEdit}
-            />
-            <SmartInsights 
-                optimizations={optimizations}
-                efficiency={efficiency}
-                necessityResult={necessityResult}
-                checkNecessity={checkNecessity}
-                resetNecessity={() => setNecessityResult(null)}
-                necessityType={necessityType}
-                setNecessityType={setNecessityType}
-                necessityFrequency={necessityFrequency}
-                setNecessityFrequency={setNecessityFrequency}
-                amount={amount}
-            />
-        </div>
-
-        {/* ANALYTICS & LIST GRID */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-0">
-             <div className="xl:col-span-5">
+        {/* MAIN DASHBOARD GRID */}
+        <div className="grid grid-cols-1 2xl:grid-cols-12 gap-6 px-6 pb-20">
+            
+            {/* LEFT COLUMN: ADD & ANALYTICS */}
+            <div className="2xl:col-span-5 space-y-6">
+                <TransactionForm 
+                    addTransaction={addTransaction}
+                    date={date}
+                    setDate={setDate}
+                    month={month}
+                    category={category}
+                    setCategory={setCategory}
+                    amount={amount}
+                    setAmount={setAmount}
+                    showSuggestions={showSuggestions}
+                    setShowSuggestions={setShowSuggestions}
+                    categoriesList={categoriesList}
+                    editingId={editingId}
+                    cancelEdit={cancelEdit}
+                />
+                
                 <Analytics transactions={transactions} />
-             </div>
-             <div className="xl:col-span-7">
+                
+                <Forecast forecast={forecast} />
+            </div>
+
+            {/* RIGHT COLUMN: INSIGHTS & LIST */}
+            <div className="2xl:col-span-7 space-y-6">
+                <SmartInsights 
+                    optimizations={optimizations}
+                    efficiency={efficiency}
+                    necessityResult={necessityResult}
+                    checkNecessity={checkNecessity}
+                    resetNecessity={() => setNecessityResult(null)}
+                    necessityType={necessityType}
+                    setNecessityType={setNecessityType}
+                    necessityFrequency={necessityFrequency}
+                    setNecessityFrequency={setNecessityFrequency}
+                    amount={amount}
+                />
+                
                 <TransactionList 
                     transactions={transactions}
                     anomalies={anomalies}
                     editTransaction={editTransaction}
                     deleteTransaction={deleteTransaction}
                 />
-             </div>
+            </div>
         </div>
-
-        {/* FORECAST */}
-        <Forecast forecast={forecast} />
 
         <ChatCoach />
       </main>
