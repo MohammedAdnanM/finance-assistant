@@ -15,7 +15,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db
-from utils import detect_anomalies, recommend_budget
+from utils import detect_anomalies, recommend_budget, financial_coach_reply
 
 import pandas as pd
 import pickle
@@ -262,6 +262,7 @@ def update_transaction(id):
 @jwt_required()
 def optimize_budget():
     user_id = int(get_jwt_identity())
+    month = request.args.get("month") # YYYY-MM
     conn = get_connection()
     df = pd.read_sql("SELECT date, category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
 
@@ -269,18 +270,45 @@ def optimize_budget():
         return jsonify([])
 
     df["date"] = pd.to_datetime(df["date"])
-    last_30 = df[df["date"] >= pd.Timestamp.today() - pd.Timedelta(days=30)]
+    
+    # Use selected month's data for "recent" spending, or last 30 days as fallback
+    if month:
+        target_month_data = df[df["date"].dt.to_period("M") == month]
+    else:
+        target_month_data = df[df["date"] >= pd.Timestamp.today() - pd.Timedelta(days=30)]
+
+    
+    # Get total global budget for comparison
+    cur = conn.cursor()
+    month_str = pd.Timestamp.today().strftime("%Y-%m")
+    budget_row = cur.execute("SELECT amount FROM budget WHERE month=?", (month_str,)).fetchone()
+    total_budget = budget_row[0] if budget_row else 0
 
     result = []
 
     for category in df["category"].unique():
-        avg = df[df["category"] == category]["amount"].mean()
-        recent = last_30[last_30["category"] == category]["amount"].sum()
+        cat_df = df[df["category"] == category]
+        
+        # Calculate average monthly spend for this category
+        # We group by month and sum, then take the mean of those sums
+        monthly_sums = cat_df.assign(m=cat_df["date"].dt.to_period("M")).groupby("m")["amount"].sum()
+        avg_monthly_spend = monthly_sums.mean()
+        
+        category_recent_total = target_month_data[target_month_data["category"] == category]["amount"].sum()
 
-        if recent > avg * 1.2:
+        # Condition 1: Spending is 20% higher than historical average
+        if len(monthly_sums) > 1 and category_recent_total > avg_monthly_spend * 1.2:
+            diff = category_recent_total - avg_monthly_spend
             result.append({
                 "category": category,
-                "message": f"Overspending detected. Reduce by ₹{round(recent - avg, 2)}"
+                "message": f"Spending is ₹{round(diff)} above your monthly average. Try to scale back."
+            })
+        
+        # Condition 2: Category consumes > 50% of total budget (for large categories/new users)
+        elif total_budget > 0 and category_recent_total > total_budget * 0.5:
+             result.append({
+                "category": category,
+                "message": f"This category accounts for {round((category_recent_total/total_budget)*100)}% of your total budget."
             })
 
     return jsonify(result)
@@ -290,29 +318,43 @@ def optimize_budget():
 @jwt_required()
 def necessity_score():
     data = request.json
-    score = round((count / total) * 100, 2)
-
-    if data["type"] == "need":
-        score += 40
+    score = 0
+    
+    # Base Type Scoring
+    if data.get("type") == "need":
+        score += 50
     else:
-        score += 10
+        score += 20
 
-    if data["frequency"] == "high":
+    # Frequency Scoring
+    freq = data.get("frequency", "low")
+    if freq == "high":
         score += 30
-    elif data["frequency"] == "medium":
+    elif freq == "medium":
         score += 20
     else:
         score += 10
 
-    if data["amount"] < data["budget"] * 0.1:
-        score += 30
+    # Amount relative to budget scoring
+    amount = data.get("amount", 0)
+    budget = data.get("budget", 0)
+    
+    if budget > 0:
+        ratio = amount / budget
+        if ratio < 0.05:
+            score += 40
+        elif ratio < 0.15:
+            score += 25
+        else:
+            score += 10
     else:
-        score += 10
+        # Default if no budget set
+        score += 20
 
-    decision = "BUY" if score > 70 else "DELAY" if score > 40 else "AVOID"
+    decision = "BUY" if score >= 85 else "DELAY" if score >= 45 else "AVOID"
 
     return jsonify({
-        "score": score,
+        "score": min(score, 100),
         "decision": decision
     })
 
@@ -321,8 +363,15 @@ def necessity_score():
 @jwt_required()
 def category_efficiency():
     user_id = int(get_jwt_identity())
+    month = request.args.get("month")
     conn = get_connection()
-    df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+    
+    if month:
+        df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=?", 
+                         conn, params=(user_id, month))
+    else:
+        df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+
 
     results = []
     grouped = df.groupby("category")
@@ -349,8 +398,19 @@ def category_efficiency():
         })
 
     return jsonify(results)
+    
+
+@app.route("/chat", methods=["POST"])
+@jwt_required()
+def chat():
+    user_id = int(get_jwt_identity())
+    data = request.json
+    message = data.get("message", "")
+    response = financial_coach_reply(user_id, message)
+    return jsonify({"response": response})
 
 
 if __name__ == "__main__":
+
     app.run(debug=True)
 

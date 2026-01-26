@@ -19,6 +19,7 @@ import TransactionForm from "./TransactionForm";
 import TransactionList from "./TransactionList";
 import Analytics from "./Analytics";
 import Forecast from "./Forecast";
+import ChatCoach from "./ChatCoach";
 
 // Utils
 import { success, error } from "../utils/toast";
@@ -50,6 +51,8 @@ export default function Dashboard({ logoutHandler }) {
   const [optimizations, setOptimizations] = useState([]);
   const [efficiency, setEfficiency] = useState([]);
   const [necessityResult, setNecessityResult] = useState(null);
+  const [necessityType, setNecessityType] = useState("want");
+  const [necessityFrequency, setNecessityFrequency] = useState("low");
 
   const categoriesList = [
     "Food",
@@ -67,12 +70,12 @@ export default function Dashboard({ logoutHandler }) {
 
   /* ---------------- API ---------------- */
   async function fetchOptimization() {
-    const res = await api.get("/optimize-budget");
+    const res = await api.get(`/optimize-budget?month=${month}`);
     if (res && res.ok) setOptimizations(await res.json());
   }
 
   async function fetchEfficiency() {
-    const res = await api.get("/category-efficiency");
+    const res = await api.get(`/category-efficiency?month=${month}`);
     if (res && res.ok) setEfficiency(await res.json());
   }
 
@@ -82,8 +85,8 @@ export default function Dashboard({ logoutHandler }) {
         return;
     }
     const res = await api.post("/necessity-score", {
-        type: "want",
-        frequency: "low",
+        type: necessityType,
+        frequency: necessityFrequency,
         amount: Number(amount || 0),
         budget,
     });
@@ -289,36 +292,41 @@ export default function Dashboard({ logoutHandler }) {
             anomalies={anomalies}
         />
 
-        {/* ANALYTICS & INSIGHTS GRID */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-0 mb-8">
-            <Analytics transactions={transactions} />
+        {/* FORM & INSIGHTS GRID */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 items-start gap-0 mb-8">
+            <TransactionForm 
+                addTransaction={addTransaction}
+                date={date}
+                setDate={setDate}
+                month={month}
+                category={category}
+                setCategory={setCategory}
+                amount={amount}
+                setAmount={setAmount}
+                showSuggestions={showSuggestions}
+                setShowSuggestions={setShowSuggestions}
+                categoriesList={categoriesList}
+                editingId={editingId}
+                cancelEdit={cancelEdit}
+            />
             <SmartInsights 
                 optimizations={optimizations}
                 efficiency={efficiency}
                 necessityResult={necessityResult}
                 checkNecessity={checkNecessity}
+                resetNecessity={() => setNecessityResult(null)}
+                necessityType={necessityType}
+                setNecessityType={setNecessityType}
+                necessityFrequency={necessityFrequency}
+                setNecessityFrequency={setNecessityFrequency}
                 amount={amount}
             />
         </div>
 
-        {/* FORM & LIST GRID */}
+        {/* ANALYTICS & LIST GRID */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-0">
              <div className="xl:col-span-5">
-                <TransactionForm 
-                    addTransaction={addTransaction}
-                    date={date}
-                    setDate={setDate}
-                    month={month}
-                    category={category}
-                    setCategory={setCategory}
-                    amount={amount}
-                    setAmount={setAmount}
-                    showSuggestions={showSuggestions}
-                    setShowSuggestions={setShowSuggestions}
-                    categoriesList={categoriesList}
-                    editingId={editingId}
-                    cancelEdit={cancelEdit}
-                />
+                <Analytics transactions={transactions} />
              </div>
              <div className="xl:col-span-7">
                 <TransactionList 
@@ -333,6 +341,7 @@ export default function Dashboard({ logoutHandler }) {
         {/* FORECAST */}
         <Forecast forecast={forecast} />
 
+        <ChatCoach />
       </main>
     </div>
   );
