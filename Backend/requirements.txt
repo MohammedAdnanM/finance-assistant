@@ -4,3 +4,5 @@ flask-jwt-extended
 pandas
 numpy
 scikit-learn
+google-generativeai
+python-dotenv
