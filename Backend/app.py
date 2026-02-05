@@ -12,6 +12,10 @@ Main Functionality:
 """
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db
@@ -24,7 +28,7 @@ app = Flask(__name__)
 CORS(app)
 
 # SECURITY CONFIG
-app.config["JWT_SECRET_KEY"] = "super-secret-key-change-this-in-prod" 
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-this-in-prod") 
 jwt = JWTManager(app)
 
 init_db()
@@ -398,6 +402,53 @@ def category_efficiency():
         })
 
     return jsonify(results)
+    
+
+@app.route("/savings", methods=["GET"])
+@jwt_required()
+def get_savings():
+    user_id = int(get_jwt_identity())
+    conn = get_connection()
+    
+    # Get all transactions
+    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+    
+    # Get all budgets
+    budgets = pd.read_sql("SELECT month, amount as budget FROM budget", conn)
+    
+    if df.empty and budgets.empty:
+        return jsonify({"total_savings": 0, "history": []})
+
+    # Process Transactions
+    if not df.empty:
+        df["date"] = pd.to_datetime(df["date"])
+        df["month"] = df["date"].dt.to_period("M").astype(str)
+        monthly_spent = df.groupby("month")["amount"].sum().reset_index()
+        monthly_spent.columns = ["month", "spent"]
+    else:
+        monthly_spent = pd.DataFrame(columns=["month", "spent"])
+
+    # Merge Budgets and Spent
+    # We want ALL months that have either a budget OR spending
+    merged = pd.merge(budgets, monthly_spent, on="month", how="outer").fillna(0)
+    
+    # Filter for PAST months only (exclude current month)
+    current_month = pd.Timestamp.today().strftime("%Y-%m")
+    past_months = merged[merged["month"] < current_month].copy()
+    
+    past_months["savings"] = past_months["budget"] - past_months["spent"]
+    
+    # Sort by month descending
+    past_months = past_months.sort_values("month", ascending=False)
+    
+    total_savings = past_months["savings"].sum()
+    
+    history = past_months.to_dict(orient="records")
+    
+    return jsonify({
+        "total_savings": round(total_savings, 2),
+        "history": history
+    })
     
 
 @app.route("/chat", methods=["POST"])

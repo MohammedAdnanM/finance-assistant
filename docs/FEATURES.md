@@ -19,6 +19,10 @@ The **Finance Assistant** is packed with features designed to take you from simp
 *   **One-Click Auto-Set:** Apply the AI's recommended budget with a single click.
 *   **Live Tracking:** See how much of your budget you've used in real-time on the dashboard.
 
+### 4. Savings Tracking
+*   **Lifetime Savings:** View your total accumulated savings (Budget - Spent) across all previous months.
+*   **Monthly History:** A break-down of savings performance for every historical month.
+
 ---
 
 ## 🧠 AI & Intelligent Analytics
@@ -58,3 +62,5 @@ The **Finance Assistant** is packed with features designed to take you from simp
 ### 11. Responsive Design
 *   **Modern UI:** Built with **Tailwind CSS** for a clean, modern, and mobile-friendly interface.
 *   **Dark Mode:** Sleek dark-themed aesthetics for comfortable viewing.
+*   **Adaptive Sidebar:** A smart sidebar for desktop that collapses into a bottom navigation bar on mobile devices.
+*   **Financial Health Widget:** Real-time gamified score (0-100) visible in the sidebar to track budget adherence.

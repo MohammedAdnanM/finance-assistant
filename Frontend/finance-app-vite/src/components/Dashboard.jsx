@@ -23,6 +23,8 @@ import TransactionList from "./TransactionList";
 import Analytics from "./Analytics";
 import Forecast from "./Forecast";
 import ChatCoach from "./ChatCoach";
+import Savings from "./Savings";
+import MobileNav from "./MobileNav";
 
 // Utils
 import { success, error } from "../utils/toast";
@@ -34,6 +36,8 @@ export default function Dashboard({ logoutHandler }) {
   const [forecast, setForecast] = useState([]);
   const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
+  const [activeTab, setActiveTab] = useState("overview");
+  const [savingsData, setSavingsData] = useState({ total_savings: 0, history: [] });
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   
   // State from App.jsx that is local to Dashboard now
@@ -137,6 +141,7 @@ export default function Dashboard({ logoutHandler }) {
         getPrediction();
         fetchOptimization();
         fetchEfficiency();
+        getSavings();
     } else {
         error("Operation failed");
     }
@@ -174,6 +179,7 @@ export default function Dashboard({ logoutHandler }) {
 
     getAnomalies();
     getPrediction();
+    getSavings();
   }
 
   async function undoDelete(txToRestore, tId) {
@@ -185,6 +191,7 @@ export default function Dashboard({ logoutHandler }) {
         if (tId) toast.dismiss(tId);
         setLastDeleted(null);
         fetchTransactions();
+        getSavings();
         success("Transaction restored");
     } else {
         error("Undo failed");
@@ -239,6 +246,13 @@ export default function Dashboard({ logoutHandler }) {
     }
   }
 
+  async function getSavings() {
+    const res = await api.get("/savings");
+    if (res && res.ok) {
+        setSavingsData(await res.json());
+    }
+  }
+
   /* ---------------- HELPERS ---------------- */
   function editTransaction(t) {
     setEditingId(t.id);
@@ -264,7 +278,9 @@ export default function Dashboard({ logoutHandler }) {
       getRecommendedBudget();
       getForecast();
       fetchOptimization();
+      fetchOptimization();
       fetchEfficiency();
+      getSavings();
       setDate(`${month}-01`);
   }, [month]);
 
@@ -279,7 +295,18 @@ export default function Dashboard({ logoutHandler }) {
     <div className="min-h-screen flex bg-gray-50 text-black dark:bg-[#0d1117] dark:text-white font-sans">
       
       {/* SIDEBAR */}
-      <Sidebar />
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        healthScore={(() => {
+            if (budget === 0) return { score: 0, label: "No Budget Set", color: "gray" };
+            const ratio = (spent / budget) * 100;
+            if (ratio > 100) return { score: Math.max(0, 100 - (ratio - 100)), label: "Over Budget", color: "red" };
+            if (ratio > 85) return { score: 70, label: "At Risk", color: "yellow" };
+            if (ratio > 50) return { score: 85, label: "Healthy", color: "indigo" };
+            return { score: 95, label: "Excellent", color: "emerald" };
+        })()}
+      />
 
       {/* CONTENT */}
       <main className="flex-1 overflow-y-auto">
@@ -314,18 +341,21 @@ export default function Dashboard({ logoutHandler }) {
         />
 
         {/* STATS */}
+        {activeTab === 'overview' && (
         <StatsCards 
             budget={budget}
             prediction={prediction}
             transactions={transactions}
             anomalies={anomalies}
         />
+        )}
 
         {/* MAIN DASHBOARD GRID */}
-        <div className="grid grid-cols-1 2xl:grid-cols-12 gap-6 px-6 pb-20">
-            
+        {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 px-6 pb-20">
+
             {/* LEFT COLUMN: ADD & ANALYTICS */}
-            <div className="2xl:col-span-5 space-y-6">
+            <div className="xl:col-span-5 space-y-6">
                 <TransactionForm 
                     addTransaction={addTransaction}
                     date={date}
@@ -348,7 +378,7 @@ export default function Dashboard({ logoutHandler }) {
             </div>
 
             {/* RIGHT COLUMN: INSIGHTS & LIST */}
-            <div className="2xl:col-span-7 space-y-6">
+            <div className="xl:col-span-7 space-y-6">
                 <SmartInsights 
                     optimizations={optimizations}
                     efficiency={efficiency}
@@ -370,8 +400,35 @@ export default function Dashboard({ logoutHandler }) {
                 />
             </div>
         </div>
+        )}
 
+        {activeTab === 'savings' && (
+           <div className="p-6">
+               <Savings totalSavings={savingsData.total_savings} history={savingsData.history} />
+           </div>
+        )}
+        
+        {activeTab === 'history' && (
+            <div className="p-6">
+                 <TransactionList 
+                    transactions={transactions}
+                    anomalies={anomalies}
+                    editTransaction={editTransaction}
+                    deleteTransaction={deleteTransaction}
+                />
+            </div>
+        )}
+
+        {activeTab === 'analytics' && (
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Analytics transactions={transactions} />
+                <Forecast forecast={forecast} />
+            </div>
+        )}
         <ChatCoach />
+
+         {/* MOBILE NAV */}
+        <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </main>
     </div>
   );

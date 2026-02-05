@@ -65,6 +65,10 @@ Base URL (Development): `http://127.0.0.1:5000`
 ### Get Budget
 *   **Endpoint:** `GET /budget/<month>`
 
+### Get Savings
+*   **Endpoint:** `GET /savings`
+*   **Description:** Returns cumulative lifetime savings and monthly savings history.
+
 ### Get Spending Prediction
 *   **Endpoint:** `GET /predict`
 *   **Description:** Predicts next month's spending based on history.

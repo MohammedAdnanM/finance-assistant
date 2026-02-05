@@ -25,7 +25,7 @@ finance assistant/
 │
 ├── Frontend/finance-app-vite/ # React Application
 │   ├── src/                 # Source Code
-│   │   ├── components/      # UI Components
+│   │   ├── components/      # UI Components (Dashboard, Sidebar, Savings, MobileNav, etc.)
 │   │   ├── utils/           # API Helpers   
 │   │   └── App.jsx          # Main Entry
 │   └── package.json         # Node Dependencies
@@ -79,3 +79,4 @@ finance assistant/
 3.  **Transactions:** Add, edit, or delete expenses.
 4.  **Coach:** Chat with the AI for financial advice.
 5.  **Analytics:** View charts, forecasts, and anomaly detection.
+6.  **Savings:** specific view to track your accumulating wealth over time.
