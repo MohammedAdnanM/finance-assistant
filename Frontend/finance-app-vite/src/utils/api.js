@@ -2,6 +2,14 @@ import { error } from "./toast";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
+// API FOR EXPO GO
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+export const fetchUserData = async () => {
+  const response = await fetch(`${API_URL}/api/user`);
+  return response.json();
+};
+
 async function request(endpoint, method = "GET", body = null) {
     const token = localStorage.getItem("token");
     const headers = {

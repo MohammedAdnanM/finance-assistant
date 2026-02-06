@@ -79,6 +79,22 @@ def login():
     access_token = create_access_token(identity=str(user[0]))
     return jsonify({"access_token": access_token}), 200
 
+@app.route("/api/user", methods=["GET"])
+@jwt_required()
+def get_user():
+    user_id = get_jwt_identity()
+    conn = get_connection()
+    cur = conn.cursor()
+    user = cur.execute("SELECT id, email FROM users WHERE id=?", (user_id,)).fetchone()
+    
+    if not user:
+        return jsonify({"msg": "User not found"}), 404
+        
+    return jsonify({
+        "id": user[0],
+        "email": user[1]
+    }), 200
+
 @app.route("/delete/<int:id>", methods=["DELETE"])
 @jwt_required()
 def delete_tx(id):
@@ -463,5 +479,5 @@ def chat():
 
 if __name__ == "__main__":
 
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
 
