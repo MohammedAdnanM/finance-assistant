@@ -14,13 +14,9 @@ from db import get_connection
 import numpy as np
 
 
-def load_data():
-    conn = get_connection()
-    df = pd.read_sql("SELECT * FROM transactions", conn)
-    if df.empty:
-        return df
-    df["month"] = pd.to_datetime(df["date"]).dt.month
-    return df
+# Removed insecure global load_data function to prevent memory leakage and privacy issues.
+# Data fetching is now handled per-route with proper user_id filtering.
+
 
 def detect_anomalies(user_id=None):
     conn = get_connection()
@@ -137,7 +133,7 @@ def financial_coach_reply(user_id, message):
         if "budget" in msg or "how am i doing" in msg:
             this_month = pd.Timestamp.today().strftime("%Y-%m")
             cur = conn.cursor()
-            budget_row = cur.execute("SELECT amount FROM budget WHERE month=?", (this_month,)).fetchone()
+            budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, this_month,)).fetchone()
             current_spent = df[df["date"].dt.to_period("M") == this_month]["amount"].sum()
             if not budget_row:
                 return f"You haven't set a budget, but you've spent ₹{round(current_spent, 2)} so far."

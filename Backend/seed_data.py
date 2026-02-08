@@ -34,7 +34,7 @@ def seed():
 
     for m in months:
         # Set Budget
-        cur.execute("REPLACE INTO budget (month, amount) VALUES (?, ?)", (m, 60000.0))
+        cur.execute("REPLACE INTO budget (user_id, month, amount) VALUES (?, ?, ?)", (user_id, m, 60000.0))
         
         # Monthly fixed costs
         cur.execute("INSERT INTO transactions (user_id, date, category, amount) VALUES (?, ?, ?, ?)",

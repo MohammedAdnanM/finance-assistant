@@ -8,7 +8,7 @@ import Login from "./components/Login";
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(
-    () => localStorage.getItem("user") === "true"
+    () => !!localStorage.getItem("token")
   );
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
@@ -16,6 +16,25 @@ export default function App() {
   /* ---------------- AUTH ---------------- */
   const [isRegistering, setIsRegistering] = useState(false);
   const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+
+  React.useEffect(() => {
+    async function verify() {
+        const token = localStorage.getItem("token");
+        if (token) {
+            try {
+                const res = await fetch(`${API_BASE}/api/user`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    logoutHandler();
+                }
+            } catch (e) {
+                // Keep logged in if network fails, but logout if 401
+            }
+        }
+    }
+    verify();
+  }, []);
 
   /* ---------------- AUTH ---------------- */
   async function loginHandler() {

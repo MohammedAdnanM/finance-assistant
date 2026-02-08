@@ -32,8 +32,10 @@ def init_db():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS budget (
-            month TEXT PRIMARY KEY,
-            amount REAL
+            user_id INTEGER,
+            month TEXT,
+            amount REAL,
+            PRIMARY KEY (user_id, month)
         )
     """)
 

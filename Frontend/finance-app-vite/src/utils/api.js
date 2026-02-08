@@ -2,12 +2,10 @@ import { error } from "./toast";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
-// API FOR EXPO GO
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
 export const fetchUserData = async () => {
-  const response = await fetch(`${API_URL}/api/user`);
-  return response.json();
+    const res = await api.get("/api/user");
+    if (res && res.ok) return res.json();
+    throw new Error("Failed to fetch user");
 };
 
 async function request(endpoint, method = "GET", body = null) {

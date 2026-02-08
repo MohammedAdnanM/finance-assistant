@@ -28,7 +28,13 @@ app = Flask(__name__)
 CORS(app)
 
 # SECURITY CONFIG
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-this-in-prod") 
+_jwt_secret = os.getenv("JWT_SECRET_KEY")
+if not _jwt_secret or _jwt_secret == "super-secret-key-change-this-in-prod":
+    print("WARNING: Insecure JWT_SECRET_KEY detected. Please set JWT_SECRET_KEY in your .env file.")
+    app.config["JWT_SECRET_KEY"] = _jwt_secret or "temporary-dev-key"
+else:
+    app.config["JWT_SECRET_KEY"] = _jwt_secret
+
 jwt = JWTManager(app)
 
 init_db()
@@ -124,20 +130,26 @@ def delete_tx(id):
 @app.route("/budget", methods=["POST"])
 @jwt_required()
 def set_budget():
+    user_id = int(get_jwt_identity())
     data = request.json
+    
+    if "month" not in data or "amount" not in data:
+        return jsonify({"msg": "Missing month or amount"}), 400
+        
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("REPLACE INTO budget VALUES (?,?)",
-                (data["month"], data["amount"]))
+    cur.execute("REPLACE INTO budget (user_id, month, amount) VALUES (?, ?, ?)",
+                (user_id, data["month"], data["amount"]))
     conn.commit()
-    return jsonify({"status":"ok"})
+    return jsonify({"status": "ok"})
 
 @app.route("/budget/<month>")
 @jwt_required()
 def get_budget(month):
+    user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    row = cur.execute("SELECT amount FROM budget WHERE month=?",(month,)).fetchone()
+    row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, month)).fetchone()
     return jsonify({"budget": row[0] if row else 0})
 
 
@@ -301,7 +313,7 @@ def optimize_budget():
     # Get total global budget for comparison
     cur = conn.cursor()
     month_str = pd.Timestamp.today().strftime("%Y-%m")
-    budget_row = cur.execute("SELECT amount FROM budget WHERE month=?", (month_str,)).fetchone()
+    budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, month_str)).fetchone()
     total_budget = budget_row[0] if budget_row else 0
 
     result = []
@@ -430,7 +442,7 @@ def get_savings():
     df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
     
     # Get all budgets
-    budgets = pd.read_sql("SELECT month, amount as budget FROM budget", conn)
+    budgets = pd.read_sql("SELECT month, amount as budget FROM budget WHERE user_id=?", conn, params=(user_id,))
     
     if df.empty and budgets.empty:
         return jsonify({"total_savings": 0, "history": []})
