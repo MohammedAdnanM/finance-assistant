@@ -1,6 +1,7 @@
 import { error } from "./toast";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
+console.log(`[API] Using backend: ${API_BASE}`);
 
 export const fetchUserData = async () => {
     const res = await api.get("/api/user");

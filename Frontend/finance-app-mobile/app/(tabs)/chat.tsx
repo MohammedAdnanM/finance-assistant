@@ -8,6 +8,16 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 import * as Haptics from 'expo-haptics';
+import Markdown from 'react-native-markdown-display';
+
+const markdownStyles = {
+    body: {
+        fontSize: 14,
+    },
+    strong: {
+        fontWeight: 'bold',
+    },
+};
 
 export default function ChatScreen() {
     const [msg, setMsg] = useState('');
@@ -66,9 +76,15 @@ export default function ChatScreen() {
                                 ? { alignSelf: 'flex-end', backgroundColor: theme.tint }
                                 : { alignSelf: 'flex-start', backgroundColor: colorScheme === 'dark' ? '#333' : '#e5e5e5' }
                         ]}>
-                            <ThemedText style={{ color: item.sender === 'user' ? '#fff' : theme.text }}>
-                                {item.text}
-                            </ThemedText>
+                            {item.sender === 'ai' ? (
+                                <Markdown style={markdownStyles}>
+                                    {item.text}
+                                </Markdown>
+                            ) : (
+                                <ThemedText style={{ color: item.sender === 'user' ? '#fff' : theme.text }}>
+                                    {item.text}
+                                </ThemedText>
+                            )}
                         </View>
                     )}
                 />

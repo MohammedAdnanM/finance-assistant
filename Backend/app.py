@@ -25,7 +25,20 @@ import pandas as pd
 import pickle
 
 app = Flask(__name__)
-CORS(app)
+
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://finance-assistant.vercel.app",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+        ],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "supports_credentials": True
+    }
+})
 
 # SECURITY CONFIG
 _jwt_secret = os.getenv("JWT_SECRET_KEY")
@@ -489,7 +502,16 @@ def chat():
     return jsonify({"response": response})
 
 
+# if __name__ == "__main__":
+
+#     app.run(debug=True, host='0.0.0.0')
+
 if __name__ == "__main__":
-
-    app.run(debug=True, host='0.0.0.0')
-
+    port = int(os.environ.get("PORT", 5000))
+    is_development = os.environ.get("FLASK_ENV") == "development"
+    
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=is_development
+    )

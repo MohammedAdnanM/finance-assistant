@@ -16,6 +16,7 @@ import {
     UserCircleIcon,
     CpuChipIcon
 } from "@heroicons/react/24/outline";
+import ReactMarkdown from "react-markdown";
 import { api } from "../utils/api";
 
 export default function ChatCoach() {
@@ -114,7 +115,22 @@ export default function ChatCoach() {
                                             ? 'bg-gradient-to-br from-indigo-600 to-indigo-700 text-white rounded-tr-none shadow-xl shadow-indigo-500/10' 
                                             : 'bg-white dark:bg-gray-800/80 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-100 dark:border-white/5 shadow-sm'
                                     }`}>
-                                        {m.content}
+                                        {m.role === 'assistant' ? (
+                                            <ReactMarkdown 
+                                                components={{
+                                                    strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                                                    em: ({node, ...props}) => <em className="italic" {...props} />,
+                                                    p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                                    ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2" {...props} />,
+                                                    ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2" {...props} />,
+                                                    li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                                                }}
+                                            >
+                                                {m.content}
+                                            </ReactMarkdown>
+                                        ) : (
+                                            m.content
+                                        )}
                                     </div>
                                 </div>
                             </div>
