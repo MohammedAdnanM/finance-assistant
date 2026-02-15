@@ -9,9 +9,11 @@ Updated Functionality:
   - Budget Optimization: Analyzes efficiency and suggests target monthly budgets.
   - Pattern Matching: Fallback logic for basic financial queries.
 """
-import pandas as pd
+# import pandas as pd
+import math
+from datetime import date, datetime
 from db import get_connection
-import numpy as np
+# import numpy as np
 
 
 # Removed insecure global load_data function to prevent memory leakage and privacy issues.
@@ -20,55 +22,80 @@ import numpy as np
 
 def detect_anomalies(user_id=None):
     conn = get_connection()
+    cur = conn.cursor()
     if user_id:
-        df = pd.read_sql("SELECT id, amount, category FROM transactions WHERE user_id=?", conn, params=(user_id,))
+        cur.execute("SELECT id, amount, category FROM transactions WHERE user_id=?", (user_id,))
     else:
-        df = pd.read_sql("SELECT id, amount, category FROM transactions", conn)
+        cur.execute("SELECT id, amount, category FROM transactions")
     
-    if df.empty:
+    rows = cur.fetchall()
+    if not rows:
         return []
     
+    # Data: id, amount, category
+    data = [{"id": r[0], "amount": r[1], "category": r[2]} for r in rows]
+    
+    def get_stats(vals):
+        if not vals: return 0, 0
+        n = len(vals)
+        mean = sum(vals) / n
+        if n < 2: return mean, 0 # Standard deviation is undefined or 0 for less than 2 points
+        variance = sum((x - mean) ** 2 for x in vals) / n
+        return mean, math.sqrt(variance)
+
+    # Global fallback for small transactions
+    small_amounts = [d['amount'] for d in data if d['amount'] < 10000]
+    global_mean = sum(small_amounts) / len(small_amounts) if small_amounts else None
+
+    categories = set(d['category'] for d in data)
     anomaly_ids = []
     
-    # Group by category to find outliers within the same type of spending
-    for category in df['category'].unique():
-        cat_df = df[df['category'] == category]
+    for cat in categories:
+        cat_items = [d for d in data if d['category'] == cat]
+        amounts = [d['amount'] for d in cat_items]
         
-        # We need a few data points in a category to establish a "normal" range
-        if len(cat_df) >= 3:
-            mean = cat_df.amount.mean()
-            std = cat_df.amount.std()
-            
-            # If std is 0 (all values same), nothing is an anomaly
-            if pd.isna(std) or std == 0:
+        if len(cat_items) >= 3:
+            mean, std = get_stats(amounts)
+            if std == 0:
                 continue
-                
-            # Flag if amount is 2 standard deviations above the category mean
-            anomalies = cat_df[cat_df.amount > mean + 2*std]
-            anomaly_ids.extend(anomalies["id"].tolist())
-        else:
-            # Fallback for small categories: flag if it's 3x the global mean of small transactions
-            global_mean = df[df.amount < 10000].amount.mean()
-            if not pd.isna(global_mean):
-                anomalies = cat_df[cat_df.amount > global_mean * 5]
-                anomaly_ids.extend(anomalies["id"].tolist())
+            # Flag if amount is 2 standard deviations above mean
+            for item in cat_items:
+                if item['amount'] > mean + 2 * std:
+                    anomaly_ids.append(item['id'])
+        elif global_mean is not None:
+            # Fallback for small categories: flag if it's 5x the global mean of small transactions
+            for item in cat_items:
+                if item['amount'] > global_mean * 5:
+                    anomaly_ids.append(item['id'])
 
     return anomaly_ids
 
 
-
-def recommend_budget(df):
-    if df.empty:
+def recommend_budget(data):
+    """Expects data as a list of dictionaries with 'date' and 'amount' keys."""
+    if not data:
         return 0
 
-    monthly = (
-        df.assign(month=pd.to_datetime(df["date"]).dt.to_period("M"))
-          .groupby("month")["amount"]
-          .sum()
-          .tail(3)
-    )
+    # Group by month (YYYY-MM)
+    monthly_sums = {}
+    for item in data:
+        dt_str = item['date']
+        # Extract YYYY-MM from 'YYYY-MM-DD' string
+        month = dt_str[:7]
+        monthly_sums[month] = monthly_sums.get(month, 0) + item['amount']
 
-    avg_spend = monthly.mean()
+    # Get last 3 months by chronological order
+    sorted_months = sorted(monthly_sums.keys())
+    last_3_months_data = []
+    if len(sorted_months) >= 3:
+        last_3_months_data = [monthly_sums[m] for m in sorted_months[-3:]]
+    else:
+        last_3_months_data = [monthly_sums[m] for m in sorted_months] # Use all available months if less than 3
+    
+    if not last_3_months_data:
+        return 0
+
+    avg_spend = sum(last_3_months_data) / len(last_3_months_data)
     return round(avg_spend * 1.15, 2)
 
 
@@ -89,17 +116,25 @@ else:
 
 def financial_coach_reply(user_id, message):
     conn = get_connection()
-    df = pd.read_sql("SELECT date, category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+    cur = conn.cursor()
+    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
     
-    if df.empty:
+    if not rows:
         return "You haven't recorded any transactions yet! Try adding some expenses first so I can analyze your habits."
 
-    df["date"] = pd.to_datetime(df["date"])
+    # Process rows into analytics context
+    total_spent = 0
+    cat_sums = {}
+    unique_dates = set()
     
-    # Analyze Data for Context
-    total_spent = df["amount"].sum()
-    top_cat = df.groupby("category")["amount"].sum().idxmax()
-    avg_daily = df.groupby("date")["amount"].sum().mean()
+    for r_date, r_cat, r_amount in rows:
+        total_spent += r_amount
+        cat_sums[r_cat] = cat_sums.get(r_cat, 0) + r_amount
+        unique_dates.add(r_date) # Assuming r_date is 'YYYY-MM-DD' string
+    
+    top_cat = max(cat_sums, key=cat_sums.get) if cat_sums else "N/A"
+    avg_daily = total_spent / len(unique_dates) if unique_dates else 0
     
     # Prepare Context for Gemini
     context = f"""
@@ -110,7 +145,7 @@ def financial_coach_reply(user_id, message):
     - Total Spending: ₹{total_spent}
     - Biggest Category: {top_cat}
     - Average Daily Spending: ₹{round(avg_daily, 2)}
-    - Detailed Categories: {df.groupby("category")["amount"].sum().to_dict()}
+    - Detailed Categories: {cat_sums}
     
     Instructions:
     1. Be encouraging and professional.
@@ -126,20 +161,21 @@ def financial_coach_reply(user_id, message):
             return response.text
         except Exception as e:
             print(f"Gemini Error: {e}")
-            return "I'm having a bit of trouble reaching my AI brain, but I'm still here! Based on your history, you've spent the most on " + top_cat + "."
+            return f"I'm having a bit of trouble reaching my AI brain, but I'm still here! Based on your history, you've spent the most on {top_cat}."
     else:
         # Original Rule-based fallback if no API key
         msg = message.lower()
         if "budget" in msg or "how am i doing" in msg:
-            this_month = pd.Timestamp.today().strftime("%Y-%m")
-            cur = conn.cursor()
+            this_month = datetime.now().strftime("%Y-%m")
             budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, this_month,)).fetchone()
-            current_spent = df[df["date"].dt.to_period("M") == this_month]["amount"].sum()
+            
+            # Calculate current month's spending manually
+            current_spent = sum(r[2] for r in rows if r[0][:7] == this_month)
+            
             if not budget_row:
                 return f"You haven't set a budget, but you've spent ₹{round(current_spent, 2)} so far."
             budget = budget_row[0]
-            remaining = budget - current_spent
+            # remaining = budget - current_spent # This was in the original, but not used in the return string
             return f"You've spent ₹{round(current_spent, 2)} out of ₹{round(budget, 2)}."
         
         return "Gemini API key not configured. I can only answer basic budget questions for now!"
-

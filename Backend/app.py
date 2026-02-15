@@ -13,6 +13,7 @@ Main Functionality:
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,7 +22,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_connection, init_db
 from utils import detect_anomalies, recommend_budget, financial_coach_reply
 
-import pandas as pd
 import pickle
 
 app = Flask(__name__)
@@ -54,7 +54,8 @@ init_db()
 
 # Load model if exists
 try:
-    model = pickle.load(open("model.pkl", "rb"))
+    with open("model.pkl", "rb") as f:
+        model = pickle.load(f)
 except:
     model = None
 
@@ -118,16 +119,10 @@ def get_user():
 @jwt_required()
 def delete_tx(id):
     user_id = int(get_jwt_identity())
-    print("DELETE REQUEST RECEIVED FOR ID:", id)
-
     conn = get_connection()
     cur = conn.cursor()
-
     cur.execute("DELETE FROM transactions WHERE id=? AND user_id=?", (id, user_id))
     conn.commit()
-
-    print("ROWS AFFECTED:", cur.rowcount)
-
     return jsonify({"status": "deleted"}), 200
 
 
@@ -219,24 +214,42 @@ def get_transactions():
 def predict():
     user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
-    if df.empty:
-        return jsonify({"prediction":0})
-
-    df["date"] = pd.to_datetime(df["date"])
-    last_month = df[df.date >= (pd.Timestamp.today()-pd.Timedelta(days=30))]
-    prediction = last_month.amount.mean() * 30
-
-    return jsonify({"prediction": round(prediction,2)})
+    cur = conn.cursor()
+    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
+    if not rows:
+        return jsonify({"prediction": 0})
+    
+    # Calculate daily average over last 30 days
+    cutoff_date = datetime.now() - timedelta(days=30)
+    recent_amounts = []
+    for r_date_str, r_amount in rows:
+        try:
+            r_date = datetime.strptime(r_date_str, "%Y-%m-%d")
+            if r_date >= cutoff_date:
+                recent_amounts.append(r_amount)
+        except ValueError:
+            # Handle invalid date format if necessary, or skip
+            pass
+    
+    if not recent_amounts:
+        return jsonify({"prediction": 0})
+    
+    daily_avg = sum(recent_amounts) / len(recent_amounts)
+    prediction = daily_avg * 30
+    return jsonify({"prediction": round(prediction, 2)})
 
 @app.route("/recommend-budget")
 @jwt_required()
 def recommend_budget_api():
     user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
-
-    recommended = recommend_budget(df)
+    cur = conn.cursor()
+    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
+    # The recommend_budget utility function expects a list of dictionaries or similar structure
+    data = [{"date": r[0], "amount": r[1]} for r in rows]
+    recommended = recommend_budget(data)
     return jsonify({"recommended_budget": recommended})
 
 
@@ -253,36 +266,34 @@ def anomaly():
 def forecast():
     user_id = int(get_jwt_identity())
     conn = get_connection()
-    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
-
-    # No transactions at all
-    if df.empty:
+    cur = conn.cursor()
+    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
+    if not rows:
         return jsonify({"forecast": []})
 
-    # Convert date safely
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna()
-
-    # Group by date and calculate daily spend
-    daily = df.groupby("date")["amount"].sum()
-
-    # If still empty
-    if daily.empty:
+    # Group by date to get daily totals
+    daily_totals = {}
+    for r_date_str, r_amount in rows:
+        try:
+            # Ensure date is valid before using
+            datetime.strptime(r_date_str, "%Y-%m-%d")
+            daily_totals[r_date_str] = daily_totals.get(r_date_str, 0) + r_amount
+        except ValueError:
+            pass # Skip invalid dates
+    
+    if not daily_totals:
         return jsonify({"forecast": []})
 
-    # Average daily spending
-    daily_avg = float(daily.mean())
-
-    forecast = []
-    start = pd.Timestamp.today().normalize()
-
+    avg_daily = sum(daily_totals.values()) / len(daily_totals)
+    
+    forecast_list = []
+    start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) # Normalize to start of day
     for i in range(1, 31):
-        forecast.append({
-            "date": (start + pd.Timedelta(days=i)).strftime("%Y-%m-%d"),
-            "amount": round(daily_avg, 2)
-        })
+        fc_date = (start + timedelta(days=i)).strftime("%Y-%m-%d")
+        forecast_list.append({"date": fc_date, "amount": round(avg_daily, 2)})
 
-    return jsonify({"forecast": forecast})
+    return jsonify({"forecast": forecast_list})
 
 ##### Update transaction
 @app.route("/update/<int:id>", methods=["PUT"])
@@ -307,52 +318,64 @@ def update_transaction(id):
 @jwt_required()
 def optimize_budget():
     user_id = int(get_jwt_identity())
-    month = request.args.get("month") # YYYY-MM
+    month_param = request.args.get("month") # YYYY-MM
     conn = get_connection()
-    df = pd.read_sql("SELECT date, category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
-
-    if df.empty:
+    cur = conn.cursor()
+    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
+    if not rows:
         return jsonify([])
 
-    df["date"] = pd.to_datetime(df["date"])
-    
-    # Use selected month's data for "recent" spending, or last 30 days as fallback
-    if month:
-        target_month_data = df[df["date"].dt.to_period("M") == month]
-    else:
-        target_month_data = df[df["date"] >= pd.Timestamp.today() - pd.Timedelta(days=30)]
+    # Group by category and month
+    cat_month_sums = {} # {category: {month: total}}
+    all_categories = set()
 
-    
+    for r_date_str, r_cat, r_amount in rows:
+        all_categories.add(r_cat)
+        try:
+            r_month = r_date_str[:7] # Extract YYYY-MM
+            if r_cat not in cat_month_sums:
+                cat_month_sums[r_cat] = {}
+            cat_month_sums[r_cat][r_month] = cat_month_sums[r_cat].get(r_month, 0) + r_amount
+        except (TypeError, IndexError):
+            # Handle cases where date string might be malformed
+            pass
+
+    # Determine the target month for recent spending
+    today_month = datetime.now().strftime("%Y-%m")
+    target_month = month_param if month_param else today_month
+
     # Get total global budget for comparison
-    cur = conn.cursor()
-    month_str = pd.Timestamp.today().strftime("%Y-%m")
-    budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, month_str)).fetchone()
+    budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, today_month)).fetchone()
     total_budget = budget_row[0] if budget_row else 0
 
     result = []
 
-    for category in df["category"].unique():
-        cat_df = df[df["category"] == category]
+    for cat in all_categories:
+        monthly_data = cat_month_sums.get(cat, {})
         
         # Calculate average monthly spend for this category
-        # We group by month and sum, then take the mean of those sums
-        monthly_sums = cat_df.assign(m=cat_df["date"].dt.to_period("M")).groupby("m")["amount"].sum()
-        avg_monthly_spend = monthly_sums.mean()
-        
-        category_recent_total = target_month_data[target_month_data["category"] == category]["amount"].sum()
+        # We need at least one month of data to calculate an average
+        if monthly_data:
+            avg_monthly_spend = sum(monthly_data.values()) / len(monthly_data)
+        else:
+            avg_monthly_spend = 0 # No historical data for this category
+
+        category_recent_total = monthly_data.get(target_month, 0)
 
         # Condition 1: Spending is 20% higher than historical average
-        if len(monthly_sums) > 1 and category_recent_total > avg_monthly_spend * 1.2:
+        # Ensure there's more than one month of data to make a meaningful comparison
+        if len(monthly_data) > 1 and avg_monthly_spend > 0 and category_recent_total > avg_monthly_spend * 1.2:
             diff = category_recent_total - avg_monthly_spend
             result.append({
-                "category": category,
+                "category": cat,
                 "message": f"Spending is ₹{round(diff)} above your monthly average. Try to scale back."
             })
         
         # Condition 2: Category consumes > 50% of total budget (for large categories/new users)
         elif total_budget > 0 and category_recent_total > total_budget * 0.5:
              result.append({
-                "category": category,
+                "category": cat,
                 "message": f"This category accounts for {round((category_recent_total/total_budget)*100)}% of your total budget."
             })
 
@@ -410,23 +433,27 @@ def category_efficiency():
     user_id = int(get_jwt_identity())
     month = request.args.get("month")
     conn = get_connection()
-    
+    cur = conn.cursor()
     if month:
-        df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=?", 
-                         conn, params=(user_id, month))
+        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=?", (user_id, month))
     else:
-        df = pd.read_sql("SELECT category, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+        cur.execute("SELECT category, amount FROM transactions WHERE user_id=?", (user_id,))
+    rows = cur.fetchall()
 
+    cat_stats = {} # {category: [total_amount, count]}
+    for r_cat, r_amount in rows:
+        if r_cat not in cat_stats:
+            cat_stats[r_cat] = [0, 0]
+        cat_stats[r_cat][0] += r_amount
+        cat_stats[r_cat][1] += 1
 
     results = []
-    grouped = df.groupby("category")
+    for cat, stats in cat_stats.items():
+        total = stats[0]
+        count = stats[1]
 
-    for category, data in grouped:
-        total = data["amount"].sum()
-        count = len(data)
-
-        if total == 0:
-            level = "Low"
+        if total == 0 or count == 0:
+            level = "Low" # Or "N/A", depending on desired behavior for no transactions
         else:
             avg = total / count  # average spend per transaction
 
@@ -438,7 +465,7 @@ def category_efficiency():
                 level = "Low"
 
         results.append({
-            "category": category,
+            "category": cat,
             "efficiency": level
         })
 
@@ -450,41 +477,49 @@ def category_efficiency():
 def get_savings():
     user_id = int(get_jwt_identity())
     conn = get_connection()
+    cur = conn.cursor()
     
     # Get all transactions
-    df = pd.read_sql("SELECT date, amount FROM transactions WHERE user_id=?", conn, params=(user_id,))
+    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    tx_rows = cur.fetchall()
     
     # Get all budgets
-    budgets = pd.read_sql("SELECT month, amount as budget FROM budget WHERE user_id=?", conn, params=(user_id,))
+    cur.execute("SELECT month, amount FROM budget WHERE user_id=?", (user_id,))
+    budget_rows = cur.fetchall()
     
-    if df.empty and budgets.empty:
+    if not tx_rows and not budget_rows:
         return jsonify({"total_savings": 0, "history": []})
 
-    # Process Transactions
-    if not df.empty:
-        df["date"] = pd.to_datetime(df["date"])
-        df["month"] = df["date"].dt.to_period("M").astype(str)
-        monthly_spent = df.groupby("month")["amount"].sum().reset_index()
-        monthly_spent.columns = ["month", "spent"]
-    else:
-        monthly_spent = pd.DataFrame(columns=["month", "spent"])
+    # Group spending by month
+    monthly_spent = {}
+    for r_date_str, r_amount in tx_rows:
+        try:
+            r_month = r_date_str[:7] # Extract YYYY-MM
+            monthly_spent[r_month] = monthly_spent.get(r_month, 0) + r_amount
+        except (TypeError, IndexError):
+            pass # Skip invalid dates
 
-    # Merge Budgets and Spent
-    # We want ALL months that have either a budget OR spending
-    merged = pd.merge(budgets, monthly_spent, on="month", how="outer").fillna(0)
+    # Prepare budgets dictionary
+    budgets = {b[0]: b[1] for b in budget_rows}
     
-    # Filter for PAST months only (exclude current month)
-    current_month = pd.Timestamp.today().strftime("%Y-%m")
-    past_months = merged[merged["month"] < current_month].copy()
+    # Collect all unique months from both transactions and budgets
+    all_months = set(list(monthly_spent.keys()) + list(budgets.keys()))
     
-    past_months["savings"] = past_months["budget"] - past_months["spent"]
+    current_month_str = datetime.now().strftime("%Y-%m")
+    history = []
+    total_savings = 0
     
-    # Sort by month descending
-    past_months = past_months.sort_values("month", ascending=False)
-    
-    total_savings = past_months["savings"].sum()
-    
-    history = past_months.to_dict(orient="records")
+    # Iterate through months, sorted for consistent output
+    for m in sorted(list(all_months), reverse=True):
+        # Exclude current and future months from historical savings calculation
+        if m >= current_month_str:
+            continue 
+        
+        budget = budgets.get(m, 0)
+        spent = monthly_spent.get(m, 0)
+        savings = budget - spent
+        total_savings += savings
+        history.append({"month": m, "budget": budget, "spent": spent, "savings": savings})
     
     return jsonify({
         "total_savings": round(total_savings, 2),
