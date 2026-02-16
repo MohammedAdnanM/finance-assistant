@@ -91,13 +91,25 @@ export default function Dashboard({ logoutHandler }) {
         error("Please enter an amount first");
         return;
     }
-    const res = await api.post("/necessity-score", {
-        type: necessityType,
-        frequency: necessityFrequency,
-        amount: Number(amount || 0),
-        budget,
-    });
-    if (res && res.ok) setNecessityResult(await res.json());
+    try {
+        const res = await api.post("/necessity-score", {
+            type: necessityType,
+            frequency: necessityFrequency,
+            amount: Number(amount || 0),
+            budget,
+        });
+        
+        if (res && res.ok) {
+            const data = await res.json();
+            setNecessityResult(data);
+            success("Analysis complete!");
+        } else {
+            error("Failed to analyze purchase");
+        }
+    } catch (err) {
+        console.error("Necessity check error:", err);
+        error("Error analyzing purchase");
+    }
   }
 
   async function fetchTransactions() {
