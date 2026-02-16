@@ -29,20 +29,29 @@ export default function App() {
                     logoutHandler();
                 }
             } catch (e) {
-                // Keep logged in if network fails, but logout if 401
+                // Keep logged in if network fails
+                console.error("Token verification failed:", e);
             }
         }
     }
     verify();
-  }, []);
+}, []);
 
   /* ---------------- AUTH ---------------- */
   async function loginHandler() {
-    if (!email || !pass) {
+    const trimmedEmail = email.trim();
+    const trimmedPass = pass.trim();
+    
+    if (!trimmedEmail || !trimmedPass) {
         error("Please fill in all fields");
         return;
     }
-
+    
+    // Email format check
+    if (!trimmedEmail.includes("@")) {
+        error("Please enter a valid email");
+        return;
+    }
     try {
         const endpoint = isRegistering ? "/register" : "/login";
         const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -52,17 +61,21 @@ export default function App() {
         });
         
         const data = await res.json();
-
         if (res.ok) {
             if (isRegistering) {
                 success("Account created! Logging in...");
-                setIsRegistering(false); 
-                // Auto login after register? Or just switch to login mode? 
-                // Let's just switch to login mode for simplicity or call login immediately.
-                // For better UX, let's just ask them to login now.
+                // Save token and log in immediately
+                localStorage.setItem("token", data.access_token);
+                localStorage.setItem("user", "true");
+                setEmail("");
+                setPass("");
+                setIsRegistering(false);
+                setLoggedIn(true);
             } else {
                 localStorage.setItem("token", data.access_token);
                 localStorage.setItem("user", "true");
+                setEmail("");
+                setPass("");
                 setLoggedIn(true);
                 success("Welcome back!");
             }
@@ -70,9 +83,10 @@ export default function App() {
             error(data.msg || "Authentication failed");
         }
     } catch (e) {
+        console.error(e);
         error("Connection error. Is backend running?");
     }
-  }
+}
 
   function logoutHandler() {
     localStorage.removeItem("user");
