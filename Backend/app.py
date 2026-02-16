@@ -387,47 +387,51 @@ def optimize_budget():
 @app.route("/necessity-score", methods=["POST"])
 @jwt_required()
 def necessity_score():
-    data = request.json
-    score = 0
-    
-    # Base Type Scoring
-    if data.get("type") == "need":
-        score += 50
-    else:
-        score += 20
-
-    # Frequency Scoring
-    freq = data.get("frequency", "low")
-    if freq == "high":
-        score += 30
-    elif freq == "medium":
-        score += 20
-    else:
-        score += 10
-
-    # Amount relative to budget scoring
-    amount = data.get("amount", 0)
-    budget = data.get("budget", 0)
-    
-    if budget > 0:
-        ratio = amount / budget
-        if ratio < 0.05:
-            score += 40
-        elif ratio < 0.15:
-            score += 25
+    try:
+        data = request.json
+        score = 0
+        
+        # Base Type Scoring
+        if data.get("type") == "need":
+            score += 50
+        else:
+            score += 20
+        
+        # Frequency Scoring
+        freq = data.get("frequency", "low")
+        if freq == "high":
+            score += 30
+        elif freq == "medium":
+            score += 20
         else:
             score += 10
-    else:
-        # Default if no budget set
-        score += 20
-
-    decision = "BUY" if score >= 85 else "DELAY" if score >= 45 else "AVOID"
-
-    return jsonify({
-        "score": min(score, 100),
-        "decision": decision
-    })
-
+        
+        # Amount relative to budget scoring - CONVERT TO FLOAT
+        amount = float(data.get("amount", 0) or 0)
+        budget = float(data.get("budget", 0) or 0)
+        
+        if budget > 0:
+            ratio = amount / budget
+            if ratio < 0.05:
+                score += 40
+            elif ratio < 0.15:
+                score += 25
+            else:
+                score += 10
+        else:
+            # Default if no budget set
+            score += 20
+        
+        decision = "BUY" if score >= 85 else "DELAY" if score >= 45 else "AVOID"
+        
+        return jsonify({
+            "score": min(score, 100),
+            "decision": decision
+        }), 200
+    except Exception as e:
+        print(f"Error in necessity_score: {str(e)}")
+        return jsonify({"msg": f"Error: {str(e)}"}), 500
+        
 ###category efficiency algorithm###
 @app.route("/category-efficiency", methods=["GET"])
 @jwt_required()
