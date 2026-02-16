@@ -31,6 +31,8 @@ CORS(app, resources={
         "origins": [
             "https://finance-assistant.vercel.app",
             "https://finance-assistant-git-c431b5-mohammed-adnans-projects-7ef5f0b2.vercel.app",
+            "https://finance-assistant.vercel.app",
+            "https://finance-assistant-git-c431b5-mohammed-adnans-projects-7ef5f0b2.vercel.app",
             "https://finance-assistant-e8qg-9zb5uh9qf.vercel.app",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
