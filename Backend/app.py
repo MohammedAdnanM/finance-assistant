@@ -30,6 +30,8 @@ CORS(app, resources={
     r"/*": {
         "origins": [
             "https://finance-assistant.vercel.app",
+            "https://finance-assistant-git-c431b5-mohammed-adnans-projects-7ef5f0b2.vercel.app",
+            "https://finance-assistant-e8qg-9zb5uh9qf.vercel.app",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost:3000",
@@ -39,7 +41,6 @@ CORS(app, resources={
         "supports_credentials": True
     }
 })
-
 # SECURITY CONFIG
 _jwt_secret = os.getenv("JWT_SECRET_KEY")
 if not _jwt_secret or _jwt_secret == "super-secret-key-change-this-in-prod":
