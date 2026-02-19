@@ -88,7 +88,15 @@ def register():
     user_id = cur.lastrowid
     access_token = create_access_token(identity=str(user_id))
 
-    return jsonify({"msg": "User created successfully", "access_token": access_token}), 201
+    return jsonify({
+        "msg": "User created successfully", 
+        "access_token": access_token,
+        "user": {
+            "id": user_id,
+            "name": name,
+            "email": email
+        }
+    }), 201
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -98,13 +106,20 @@ def login():
 
     conn = get_connection()
     cur = conn.cursor()
-    user = cur.execute("SELECT id, password_hash FROM users WHERE email=?", (email,)).fetchone()
+    user = cur.execute("SELECT id, password_hash, name, email FROM users WHERE email=?", (email,)).fetchone()
 
     if not user or not check_password_hash(user[1], password):
         return jsonify({"msg": "Bad email or password"}), 401
 
     access_token = create_access_token(identity=str(user[0]))
-    return jsonify({"access_token": access_token}), 200
+    return jsonify({
+        "access_token": access_token,
+        "user": {
+            "id": user[0],
+            "name": user[2],
+            "email": user[3]
+        }
+    }), 200
 
 @app.route("/api/user", methods=["GET"])
 @jwt_required()

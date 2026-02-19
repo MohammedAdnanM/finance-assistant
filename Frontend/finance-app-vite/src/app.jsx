@@ -19,6 +19,7 @@ export default function App() {
 
   /* ---------------- AUTH ---------------- */
   const [isRegistering, setIsRegistering] = useState(false);
+  const [userData, setUserData] = useState(null);
   const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:5000";
 
   React.useEffect(() => {
@@ -29,7 +30,10 @@ export default function App() {
                 const res = await fetch(`${API_BASE}/api/user`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
-                if (!res.ok) {
+                if (res.ok) {
+                    const data = await res.json();
+                    setUserData(data);
+                } else {
                     logoutHandler();
                 }
             } catch (e) {
@@ -39,7 +43,7 @@ export default function App() {
         }
     }
     verify();
-}, []);
+}, [loggedIn]);
 
   /* ---------------- AUTH ---------------- */
   async function loginHandler() {
@@ -87,6 +91,7 @@ export default function App() {
                 // Save token and log in immediately
                 localStorage.setItem("token", data.access_token);
                 localStorage.setItem("user", "true");
+                setUserData(data.user);
                 setEmail("");
                 setPass("");
                 setIsRegistering(false);
@@ -94,6 +99,7 @@ export default function App() {
             } else {
                 localStorage.setItem("token", data.access_token);
                 localStorage.setItem("user", "true");
+                setUserData(data.user);
                 setEmail("");
                 setPass("");
                 setLoggedIn(true);
@@ -111,6 +117,7 @@ export default function App() {
   function logoutHandler() {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    setUserData(null);
     setLoggedIn(false);
   }
 
@@ -134,6 +141,6 @@ export default function App() {
   }
 
   return (
-    <Dashboard logoutHandler={logoutHandler} />
+    <Dashboard logoutHandler={logoutHandler} user={userData} />
   );
 }

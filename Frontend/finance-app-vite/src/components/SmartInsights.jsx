@@ -46,7 +46,7 @@ export default function SmartInsights({
                 </div>
             ) : (
                 optimizations.map((o, i) => (
-                <div key={i} className="flex items-start gap-2 text-red-500 bg-red-50 dark:bg-red-900/10 p-3 rounded-lg">
+                <div key={i} className="flex items-start gap-2 text-red-500 bg-red-50 dark:bg-red-900/10 p-3 rounded-lg animate-pulse-slow">
                     <span>⚠</span>
                     <p className="text-xs">
                     <span className="font-bold">{o.category}:</span> {o.message}

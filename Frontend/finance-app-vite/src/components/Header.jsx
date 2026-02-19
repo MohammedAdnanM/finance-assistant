@@ -18,6 +18,7 @@ export default function Header({
   saveBudget,
   recommendedBudget,
   spent,
+  user
 }) {
   return (
     <header
@@ -28,7 +29,21 @@ export default function Header({
         <div className="flex items-center justify-between">
           <div className="animate-entry stagger-1">
             <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
-              Financial Hub <span className="text-indigo-500">_</span>
+              {user ? (
+                <>
+                  Welcome back,{" "}
+                  <span className="text-indigo-500">
+                    {(() => {
+                      const nickname = user.name ? user.name.split(" ")[0] : user.email.split("@")[0];
+                      return nickname.charAt(0).toUpperCase() + nickname.slice(1);
+                    })()}
+                  </span>
+                </>
+              ) : (
+                <>
+                  Financial Hub <span className="text-indigo-500">_</span>
+                </>
+              )}
             </h2>
             <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">
               Your intelligent assets overview
@@ -64,41 +79,53 @@ export default function Header({
 
         {/* BUDGET OVERVIEW */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6 rounded-[2rem] bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5 animate-entry stagger-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8">
-            <div className="group">
-              <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-[0.2em]">
-                Monthly Limit
-              </label>
-              <div className="flex items-center mt-1">
-                <span className="text-2xl font-black text-indigo-500 mr-2 drop-shadow-lg">
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  value={budget}
-                  onChange={(e) => saveBudget(e.target.value)}
-                  className="bg-transparent text-4xl font-black text-gray-900 dark:text-white
-                             border-none p-0 focus:ring-0 w-44 placeholder-gray-300 dark:placeholder-gray-700 transition-all group-hover:translate-x-1"
-                  placeholder="000,000"
-                />
-              </div>
-            </div>
-            
-            <div className="h-16 w-px bg-gray-200 dark:bg-white/10 hidden sm:block"></div>
+            <div className="flex-1 space-y-3 min-w-[300px]">
+                <div className="flex justify-between items-end">
+                    <div className="group">
+                        <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-[0.2em]">
+                            Monthly Limit
+                        </label>
+                        <div className="flex items-center mt-1">
+                            <span className="text-2xl font-black text-indigo-500 mr-2 drop-shadow-lg">
+                            ₹
+                            </span>
+                            <input
+                            type="number"
+                            value={budget}
+                            onChange={(e) => saveBudget(e.target.value)}
+                            className="bg-transparent text-4xl font-black text-gray-900 dark:text-white
+                                        border-none p-0 focus:ring-0 w-44 placeholder-gray-300 dark:placeholder-gray-700 transition-all group-hover:translate-x-1"
+                            placeholder="000,000"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-8 mb-1">
+                        <div className="text-right">
+                        <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Spent</p>
+                        <p className="text-xl font-black text-gray-900 dark:text-white">₹ {spent.toLocaleString()}</p>
+                        </div>
+                        <div className="text-right">
+                        <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Available</p>
+                        <p className={`text-xl font-black ${budget - spent < 0 ? "text-rose-500" : "text-emerald-500"}`}>
+                            ₹ {(budget - spent).toLocaleString()}
+                        </p>
+                        </div>
+                    </div>
+                </div>
 
-            <div className="flex gap-12">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Spent</p>
-                  <p className="text-2xl font-black text-gray-900 dark:text-white">₹ {spent.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Available</p>
-                  <p className={`text-2xl font-black ${budget - spent < 0 ? "text-rose-500" : "text-emerald-500"}`}>
-                     ₹ {(budget - spent).toLocaleString()}
-                  </p>
+                {/* Interactive Progress Bar */}
+                <div className="h-2 w-full bg-gray-200 dark:bg-white/5 rounded-full overflow-hidden relative border border-gray-100 dark:border-white/5 shadow-inner">
+                    <div 
+                        className={`h-full transition-all duration-1000 ease-out rounded-full shadow-[0_0_15px_rgba(0,0,0,0.1)] ${
+                            (spent / budget) > 1 ? "bg-rose-500 shadow-rose-500/20" : 
+                            (spent / budget) > 0.85 ? "bg-yellow-500 shadow-yellow-500/20" : 
+                            "bg-gradient-to-r from-indigo-500 to-indigo-600 shadow-indigo-500/20"
+                        }`}
+                        style={{ width: `${Math.min((spent / (budget || 1)) * 100, 100)}%` }}
+                    ></div>
                 </div>
             </div>
-          </div>
 
           {recommendedBudget > 0 && (
             <div

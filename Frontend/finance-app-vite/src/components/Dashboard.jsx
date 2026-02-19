@@ -43,7 +43,7 @@ const categoriesList = [
   "Utilities"
 ];
 
-export default function Dashboard({ logoutHandler }) {
+export default function Dashboard({ logoutHandler, user }) {
   const [lastDeleted, setLastDeleted] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [forecast, setForecast] = useState([]);
@@ -350,6 +350,7 @@ export default function Dashboard({ logoutHandler }) {
             saveBudget={saveBudget}
             recommendedBudget={recommendedBudget}
             spent={spent}
+            user={user}
         />
 
         {/* STATS */}

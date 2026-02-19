@@ -68,10 +68,15 @@ export default function TransactionList({
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-12 text-center text-gray-400">
-                    <div className="flex flex-col items-center gap-2">
-                        <span className="text-4xl opacity-50">💸</span>
-                        <p>No transactions yet</p>
+                <td colSpan="4" className="p-16 text-center">
+                    <div className="flex flex-col items-center justify-center animate-entry">
+                        <div className="h-24 w-24 rounded-full bg-indigo-50 dark:bg-indigo-500/5 flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-500/10">
+                            <span className="text-5xl">✨</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Clean Slate!</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
+                            No transactions found for this month. You're either off to a great start or it's time to log some data.
+                        </p>
                     </div>
                 </td>
               </tr>
@@ -79,14 +84,14 @@ export default function TransactionList({
               transactions.map((t) => (
                 <tr
                   key={t.id}
-                  className="group hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
+                  className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5 transition-colors border-b border-gray-50 dark:border-gray-800/50 last:border-0"
                 >
                   {/* DATE */}
-                  <td className="p-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap">{t.date}</td>
+                  <td className="p-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap text-sm">{t.date}</td>
 
                   {/* CATEGORY */}
                   <td className="p-4">
-                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-xs font-medium text-gray-600 dark:text-gray-300">
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         {t.category}
                     </span>
                   </td>
@@ -94,17 +99,18 @@ export default function TransactionList({
                   {/* AMOUNT */}
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-900 dark:text-white font-bold">
-                        ₹ {t.amount}
+                      <span className="text-gray-900 dark:text-white font-black text-lg">
+                        ₹ {t.amount.toLocaleString()}
                       </span>
 
                       {anomalies.includes(t.id) && (
                         <span
-                          className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full
-                                     bg-red-100 text-red-600 border border-red-200
-                                     dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30"
+                          className="flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest
+                                     bg-rose-500/10 text-rose-600 border border-rose-500/20
+                                     dark:text-rose-400 animate-pulse-slow"
                         >
-                          ⚠ Abnormal
+                          <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                          Anomaly
                         </span>
                       )}
                     </div>
