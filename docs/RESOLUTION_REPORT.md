@@ -1,15 +1,15 @@
 # Project Audit & Resolution Report
-**Date:** February 8, 2026  
-**Status:** Completed & Verified  
+Date: February 8, 2026  
+Status: Completed & Verified  
 
 ## 1. The Core Problem: Lack of Data Isolation
-The application was suffering from a critical **Multi-tenancy Failure**. While the system supported multiple users via registration and login, the data backend was not properly isolated between those users.
+The application was suffering from a critical Multi-tenancy Failure. While the system supported multiple users via registration and login, the data backend was not properly isolated between those users.
 
 ### Specific Issues Identified:
-*   **Budget Collision:** The `budget` table used `month` as a unique primary key without a `user_id`. If User A set a budget for "March 2026" and User B did the same, User B would overwrite User A's data.
-*   **Analytics Leakage:** Complex metrics like "Total Savings" and "AI Coach Recommendations" were pulling budget data from the entire database rather than filtering for the specific logged-in user.
-*   **Session "Ghosting":** The frontend allowed users to see the dashboard based on a local flag, even if their security token had expired or was deleted, leading to broken requests and "Network Error" messages.
-*   **Memory Inefficiency:** A global data loader was fetching every transaction from every user into memory for every request, which would have eventually crashed the server as the project grew.
+*   Budget Collision: The `budget` table used `month` as a unique primary key without a `user_id`. If User A set a budget for "March 2026" and User B did the same, User B would overwrite User A's data.
+*   Analytics Leakage: Complex metrics like "Total Savings" and "AI Coach Recommendations" were pulling budget data from the entire database rather than filtering for the specific logged-in user.
+*   Session "Ghosting": The frontend allowed users to see the dashboard based on a local flag, even if their security token had expired or was deleted, leading to broken requests and "Network Error" messages.
+*   Memory Inefficiency: A global data loader was fetching every transaction from every user into memory for every request, which would have eventually crashed the server as the project grew.
 
 ---
 
@@ -17,22 +17,23 @@ The application was suffering from a critical **Multi-tenancy Failure**. While t
 We implemented a multi-layered fix to ensure that every user's financial data is strictly private and secure.
 
 ### Backend Fixes (Python/Flask/SQLite):
-1.  **Database Schema Migration:** Recreated the `budget` table with a composite Primary Key: `(user_id, month)`. This allows every user to have their own unique budget for every month.
-2.  **Strict Route Enforcement:** Updated all matching routes (`/budget`, `/savings`, `/optimize-budget`, `/chat`) to extract the `user_id` from the JWT token and use it as a mandatory filter in all SQL queries.
-3.  **Secure AI Prompting:** Sanitized the data being sent to Google Gemini so that only the specific user's transactions are analyzed.
-4.  **Automatic Migration Script:** Developed a one-time script (`fix_multi_tenancy.py`) that moved orphaned historical data into the correct user accounts so no data was lost during the upgrade.
+1.  Database Schema Migration: Recreated the `budget` table with a composite Primary Key: `(user_id, month)`. This allows every user to have their own unique budget for every month.
+2.  Strict Route Enforcement: Updated all matching routes (`/budget`, `/savings`, `/optimize-budget`, `/chat`) to extract the `user_id` from the JWT token and use it as a mandatory filter in all SQL queries.
+3.  Secure AI Prompting: Sanitized the data being sent to Google Gemini so that only the specific user's transactions are analyzed.
+4.  Automatic Migration Script: Developed a one-time script (`fix_multi_tenancy.py`) that moved orphaned historical data into the correct user accounts so no data was lost during the upgrade.
 
 ### Frontend Fixes (React/Vite):
-1.  **Auth Verification Hook:** Added a `useEffect` on app startup that instantly validates the JWT token against the backend. If the token is invalid, the user is immediately redirected to Login.
-2.  **API Utility Cleanup:** Synced the API communication logic to ensure all request headers always include the proper authentication bearer token.
+1.  Auth Verification Hook: Added a `useEffect` on app startup that instantly validates the JWT token against the backend. If the token is invalid, the user is immediately redirected to Login.
+2.  API Utility Cleanup: Synced the API communication logic to ensure all request headers always include the proper authentication bearer token.
 
 ---
 
 ## 3. Verification Results
 The fixes were verified using both automated scripts and manual testing:
-*   ✅ **ISOLATION:** Verified that User A setting a budget does NOT show up for User B.
-*   ✅ **SECURITY:** Verified that deleting a cookie/token instantly triggers a logout.
-*   ✅ **ACCURACY:** Verified that "Total Savings" calculations now only reflect the logged-in user's history.
+*   ✅ ISOLATION: Verified that User A setting a budget does NOT show up for User B.
+*   ✅ SECURITY: Verified that deleting a cookie/token instantly triggers a logout.
+*   ✅ ACCURACY: Verified that "Total Savings" calculations now only reflect the logged-in user's history.
 
 ---
 *Report Generated by Antigravity AI Assistant*
+

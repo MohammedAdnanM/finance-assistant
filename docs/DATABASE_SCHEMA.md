@@ -1,6 +1,6 @@
 # Database Schema
 
-The application uses **SQLite** (`finance.db`) for data storage.
+The application uses SQLite (`finance.db`) for data storage.
 
 ## Tables
 
@@ -12,6 +12,7 @@ Stores user authentication details.
 | `id` | INTEGER PK | Auto-incrementing User ID |
 | `email` | TEXT UNIQUE | User's email address |
 | `password_hash` | TEXT | Hashed password (using werkzeug) |
+| `name` | TEXT | User's full name |
 
 ### 2. `transactions`
 Stores individual financial records.
@@ -29,9 +30,11 @@ Stores monthly budget limits.
 
 | Column | Type | Description |
 | :--- | :--- | :--- |
+| `user_id` | INTEGER PK | Foreign Key to `users.id` |
 | `month` | TEXT PK | Month identifier (YYYY-MM) |
 | `amount` | REAL | Budget limit for that month |
 
 ## Notes
-*   **Isolation:** All transaction queries are filtered by `user_id` to ensure data privacy.
-*   **Dates:** Stored as TEXT strings for SQLite compatibility, parsed as needed in Python.
+*   Isolation: All transaction queries are filtered by `user_id` to ensure data privacy.
+*   Dates: Stored as TEXT strings for SQLite compatibility, parsed as needed in Python.
+

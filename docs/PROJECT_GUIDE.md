@@ -1,13 +1,13 @@
 # Projects Guide & Setup
 
 ## Project Description
-**Finance Assistant** is a full-stack web application designed to help users track expenses, manage budgets, and receive AI-powered financial advice.
+Finance Assistant is a full-stack web application designed to help users track expenses, manage budgets, and receive AI-powered financial advice.
 
 ### Tech Stack
-*   **Frontend:** React (Vite), Tailwind CSS
-*   **Backend:** Flask (Python)
-*   **Database:** SQLite
-*   **AI:** Google Gemini Flash API, Scikit-learn (Linear Regression)
+*   Frontend: React (Vite), Tailwind CSS
+*   Backend: Flask (Python)
+*   Database: SQLite
+*   AI: Google Gemini Flash API, Scikit-learn (Linear Regression)
 
 ---
 
@@ -74,9 +74,10 @@ finance assistant/
 ---
 
 ## Usage
-1.  **Register/Login:** Create an account to start tracking.
-2.  **Dashboard:** View your monthly spending and balance.
-3.  **Transactions:** Add, edit, or delete expenses.
-4.  **Coach:** Chat with the AI for financial advice.
-5.  **Analytics:** View charts, forecasts, and anomaly detection.
-6.  **Savings:** specific view to track your accumulating wealth over time.
+1.  Register/Login: Create an account to start tracking.
+2.  Dashboard: View your monthly spending and balance.
+3.  Transactions: Add, edit, or delete expenses.
+4.  Coach: Chat with the AI for financial advice.
+5.  Analytics: View charts, forecasts, and anomaly detection.
+6.  Savings: specific view to track your accumulating wealth over time.
+

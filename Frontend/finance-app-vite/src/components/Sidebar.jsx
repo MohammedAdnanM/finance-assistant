@@ -20,7 +20,6 @@ export default function Sidebar({ activeTab, setActiveTab, healthScore }) {
     { id: 'savings', icon: BanknotesIcon, label: "Savings" },
     { id: 'history', icon: ReceiptPercentIcon, label: "History" },
     { id: 'analytics', icon: ChartBarIcon, label: "Analytics" },
-    // { id: 'control', icon: Cog6ToothIcon, label: "Control" } // Control not yet implemented
   ];
 
   return (

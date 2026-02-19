@@ -15,7 +15,7 @@ async function request(endpoint, method = "GET", body = null) {
         "Content-Type": "application/json",
     };
 
-    if (token) {
+    if (token && token !== "undefined") {
         headers["Authorization"] = `Bearer ${token}`;
     }
 

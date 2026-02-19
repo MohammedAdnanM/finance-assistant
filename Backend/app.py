@@ -67,6 +67,7 @@ def register():
     data = request.json
     email = data.get("email")
     password = data.get("password")
+    name = data.get("name", "")
 
     if not email or not password:
         return jsonify({"msg": "Missing email or password"}), 400
@@ -80,10 +81,14 @@ def register():
         return jsonify({"msg": "User already exists"}), 400
 
     hashed = generate_password_hash(password)
-    cur.execute("INSERT INTO users (email, password_hash) VALUES (?, ?)", (email, hashed))
+    cur.execute("INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)", (email, hashed, name))
     conn.commit()
+    
+    # Generate token for immediate login
+    user_id = cur.lastrowid
+    access_token = create_access_token(identity=str(user_id))
 
-    return jsonify({"msg": "User created successfully"}), 201
+    return jsonify({"msg": "User created successfully", "access_token": access_token}), 201
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -107,14 +112,15 @@ def get_user():
     user_id = get_jwt_identity()
     conn = get_connection()
     cur = conn.cursor()
-    user = cur.execute("SELECT id, email FROM users WHERE id=?", (user_id,)).fetchone()
+    user = cur.execute("SELECT id, email, name FROM users WHERE id=?", (user_id,)).fetchone()
     
     if not user:
         return jsonify({"msg": "User not found"}), 404
         
     return jsonify({
         "id": user[0],
-        "email": user[1]
+        "email": user[1],
+        "name": user[2]
     }), 200
 
 @app.route("/delete/<int:id>", methods=["DELETE"])
@@ -127,14 +133,6 @@ def delete_tx(id):
     conn.commit()
     return jsonify({"status": "deleted"}), 200
 
-
-# @app.route("/delete/<int:transaction_id>", methods=["DELETE"])
-# def delete_transaction(transaction_id):
-#     conn = get_connection()
-#     cur = conn.cursor()
-#     cur.execute("DELETE FROM transactions WHERE id = ?", (transaction_id,))
-#     conn.commit()
-#     return jsonify({"message": "Transaction deleted"}), 
 
 ###month 
 @app.route("/budget", methods=["POST"])
@@ -542,10 +540,6 @@ def chat():
     response = financial_coach_reply(user_id, message)
     return jsonify({"response": response})
 
-
-# if __name__ == "__main__":
-
-#     app.run(debug=True, host='0.0.0.0')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

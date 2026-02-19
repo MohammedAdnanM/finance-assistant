@@ -2,16 +2,20 @@ import React, { useState } from "react";
 import { error, success } from "./utils/toast";
 
 // Pages
-// Pages
 import Dashboard from "./components/Dashboard";
 import Login from "./components/Login";
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(
-    () => !!localStorage.getItem("token")
+    () => {
+      const t = localStorage.getItem("token");
+      return !!t && t !== "undefined";
+    }
   );
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [name, setName] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
 
   /* ---------------- AUTH ---------------- */
   const [isRegistering, setIsRegistering] = useState(false);
@@ -52,12 +56,28 @@ export default function App() {
         error("Please enter a valid email");
         return;
     }
+
+    if (isRegistering) {
+        if (!name.trim()) {
+            error("Please enter your name");
+            return;
+        }
+        if (trimmedPass !== confirmPass.trim()) {
+            error("Passwords do not match");
+            return;
+        }
+    }
+
     try {
         const endpoint = isRegistering ? "/register" : "/login";
         const res = await fetch(`${API_BASE}${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password: pass })
+            body: JSON.stringify({ 
+                email: trimmedEmail, 
+                password: trimmedPass,
+                name: isRegistering ? name : undefined 
+            })
         });
         
         const data = await res.json();
@@ -102,6 +122,10 @@ export default function App() {
         setEmail={setEmail}
         pass={pass}
         setPass={setPass}
+        name={name}
+        setName={setName}
+        confirmPass={confirmPass}
+        setConfirmPass={setConfirmPass}
         loginHandler={loginHandler}
         isRegistering={isRegistering}
         setIsRegistering={setIsRegistering}

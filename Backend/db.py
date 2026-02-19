@@ -43,7 +43,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE,
-            password_hash TEXT
+            password_hash TEXT,
+            name TEXT
         )
     """)
 

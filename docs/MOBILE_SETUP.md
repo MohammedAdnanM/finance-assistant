@@ -1,9 +1,9 @@
 # Mobile App API Setup Guide
 
-This guide explains how to connect the **Finance Assistant Mobile App** (Expo Go) to your local **Flask Backend**.
+This guide explains how to connect the Finance Assistant Mobile App (Expo Go) to your local Flask Backend.
 
 ## Prerequisites
-- Your Computer and Mobile Phone must be on the **same Wi-Fi network**.
+- Your Computer and Mobile Phone must be on the same Wi-Fi network.
 - The Backend server must be running.
 
 ---
@@ -24,9 +24,9 @@ The backend must be configured to listen on all network interfaces (not just loc
 ## 2. Find your Computer's LAN IP
 Your phone needs to know your computer's address on the local network.
 
-1. Open **Command Prompt** (cmd) on your computer.
+1. Open Command Prompt (cmd) on your computer.
 2. Type `ipconfig` and press Enter.
-3. Look for **IPv4 Address** under your active connection (Wi-Fi or Ethernet).
+3. Look for IPv4 Address under your active connection (Wi-Fi or Ethernet).
    - Example: `192.168.0.100`
 
 ---
@@ -46,13 +46,13 @@ If you still can't connect, check these common issues:
 
 ### A. Windows Firewall
 Windows often blocks incoming connections to Python.
-1. Open **Windows Defender Firewall** settings.
-2. Click **"Allow an app or feature through Windows Defender Firewall"**.
-3. Find **python.exe** and ensure both **Private** and **Public** are checked.
+1. Open Windows Defender Firewall settings.
+2. Click "Allow an app or feature through Windows Defender Firewall".
+3. Find python.exe and ensure both Private and Public are checked.
 4. Alternatively, temporarily disable the firewall for testing.
 
 ### B. Network Profile
-Ensure your Wi-Fi network on your computer is set to **"Private"** instead of "Public". Windows blocks most local connections on Public networks.
+Ensure your Wi-Fi network on your computer is set to "Private" instead of "Public". Windows blocks most local connections on Public networks.
 
 ### C. Cleartext Traffic (Android)
 Android blocks `http://` (non-secure) connections by default. I have already enabled this in `app.json`:
@@ -66,5 +66,6 @@ Android blocks `http://` (non-secure) connections by default. I have already ena
 
 ## 5. Running the App
 1. Start the Expo server: `npm start` (in the mobile folder).
-2. Scan the QR code using the **Expo Go** app on your Android/iOS device.
+2. Scan the QR code using the Expo Go app on your Android/iOS device.
 3. Login using your credentials.
+

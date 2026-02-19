@@ -13,7 +13,6 @@ import React, { useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 // Components
-// Components
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import StatsCards from "./StatsCards";
@@ -29,6 +28,20 @@ import MobileNav from "./MobileNav";
 // Utils
 import { success, error } from "../utils/toast";
 import { api } from "../utils/api";
+
+const categoriesList = [
+  "Food",
+  "Fuel",
+  "Shopping",
+  "Rent",
+  "Bills",
+  "Medicine",
+  "Travel",
+  "Entertainment",
+  "Education",
+  "Health",
+  "Utilities"
+];
 
 export default function Dashboard({ logoutHandler }) {
   const [lastDeleted, setLastDeleted] = useState(null);
@@ -61,19 +74,7 @@ export default function Dashboard({ logoutHandler }) {
   const [necessityType, setNecessityType] = useState("want");
   const [necessityFrequency, setNecessityFrequency] = useState("low");
 
-  const categoriesList = [
-    "Food",
-    "Fuel",
-    "Shopping",
-    "Rent",
-    "Bills",
-    "Medicine",
-    "Travel",
-    "Entertainment",
-    "Education",
-    "Health",
-    "Utilities"
-  ];
+
 
   /* ---------------- API ---------------- */
   async function fetchOptimization() {
@@ -289,7 +290,6 @@ export default function Dashboard({ logoutHandler }) {
       getAnomalies();
       getRecommendedBudget();
       getForecast();
-      fetchOptimization();
       fetchOptimization();
       fetchEfficiency();
       getSavings();
