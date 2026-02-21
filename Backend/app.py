@@ -230,28 +230,50 @@ def predict():
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    
+    # Constants
+    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities", "Emi", "Loan"]
+    today = datetime.now()
+    this_month_str = today.strftime("%Y-%m")
+    
+    # Calculate days passed (1-based), ensuring at least 1 to avoid division by zero
+    days_passed = max(today.day, 1)
+    days_in_month = 30 # Simplified
+    
+    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND substr(date,1,7)=?", (user_id, this_month_str))
     rows = cur.fetchall()
+    
     if not rows:
         return jsonify({"prediction": 0})
     
-    # Calculate daily average over last 30 days
-    cutoff_date = datetime.now() - timedelta(days=30)
-    recent_amounts = []
-    for r_date_str, r_amount in rows:
-        try:
-            r_date = datetime.strptime(r_date_str, "%Y-%m-%d")
-            if r_date >= cutoff_date:
-                recent_amounts.append(r_amount)
-        except ValueError:
-            # Handle invalid date format if necessary, or skip
-            pass
+    fixed_total = 0
+    variable_total = 0
     
-    if not recent_amounts:
-        return jsonify({"prediction": 0})
+    for r_date, r_amount, r_cat in rows:
+        # Normalize category to Title Case and strip whitespace for robust matching
+        cat_norm = r_cat.strip().title() if r_cat else ""
+        
+        if cat_norm in FIXED_CATS:
+            fixed_total += r_amount
+        else:
+            variable_total += r_amount
+            
+    # Calculate daily velocity for variable spending
+    # If it's early in the month (e.g. day 1), one transaction shouldn't define the whole month's velocity
+    # So we dampen the velocity calculation by assuming a minimum of 5 days have passed for the divisor
+    # This prevents 1 lunch on Day 1 (1000) becoming a 30k prediction.
+    effective_days = max(days_passed, 5)
     
-    daily_avg = sum(recent_amounts) / len(recent_amounts)
-    prediction = daily_avg * 30
+    variable_avg_daily = variable_total / effective_days
+    
+    # Prediction = Fixed Costs (Actual) + Variable Costs (Projected)
+    # Variable Projected = Variable Spent So Far + (Daily Rate * Remaining Days)
+    remaining_days = max(days_in_month - days_passed, 0)
+    variable_predicted = variable_total + (variable_avg_daily * remaining_days)
+    
+    # Total prediction
+    prediction = fixed_total + variable_predicted
+    
     return jsonify({"prediction": round(prediction, 2)})
 
 @app.route("/recommend-budget")
@@ -282,31 +304,46 @@ def forecast():
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    
+    # Get last 60 days of data for a better trend
+    cutoff = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND date >= ?", (user_id, cutoff))
     rows = cur.fetchall()
+    
     if not rows:
         return jsonify({"forecast": []})
 
-    # Group by date to get daily totals
-    daily_totals = {}
-    for r_date_str, r_amount in rows:
-        try:
-            # Ensure date is valid before using
-            datetime.strptime(r_date_str, "%Y-%m-%d")
-            daily_totals[r_date_str] = daily_totals.get(r_date_str, 0) + r_amount
-        except ValueError:
-            pass # Skip invalid dates
+    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
     
-    if not daily_totals:
-        return jsonify({"forecast": []})
+    # Calculate average daily variable spend over last 60 days
+    variable_total = sum(r[1] for r in rows if r[2] not in FIXED_CATS)
+    avg_daily_variable = variable_total / 60
+    
+    # Get typical monthly fixed costs (average of monthly totals for fixed categories)
+    fixed_by_month = {}
+    for r_date, r_amount, r_cat in rows:
+        if r_cat in FIXED_CATS:
+            m = r_date[:7]
+            if m not in fixed_by_month: fixed_by_month[m] = 0
+            fixed_by_month[m] += r_amount
+    
+    avg_monthly_fixed = 0
+    if fixed_by_month:
+        avg_monthly_fixed = sum(fixed_by_month.values()) / len(fixed_by_month)
 
-    avg_daily = sum(daily_totals.values()) / len(daily_totals)
-    
     forecast_list = []
-    start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0) # Normalize to start of day
+    start = datetime.now()
+    
+    # Forecast for the next 30 days
+    # We distribute fixed costs to the 1st of the next month basically
     for i in range(1, 31):
-        fc_date = (start + timedelta(days=i)).strftime("%Y-%m-%d")
-        forecast_list.append({"date": fc_date, "amount": round(avg_daily, 2)})
+        fc_date_obj = start + timedelta(days=i)
+        fc_date = fc_date_obj.strftime("%Y-%m-%d")
+        
+        daily_amount = avg_daily_variable
+        # Add fixed cost chunk if it's the start of a month in the forecast? 
+        # Simpler: just provide the daily variable velocity as the forecast line.
+        forecast_list.append({"date": fc_date, "amount": round(daily_amount, 2)})
 
     return jsonify({"forecast": forecast_list})
 
@@ -364,22 +401,20 @@ def optimize_budget():
     budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, today_month)).fetchone()
     total_budget = budget_row[0] if budget_row else 0
 
+    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
     result = []
 
     for cat in all_categories:
         monthly_data = cat_month_sums.get(cat, {})
         
-        # Calculate average monthly spend for this category
-        # We need at least one month of data to calculate an average
         if monthly_data:
             avg_monthly_spend = sum(monthly_data.values()) / len(monthly_data)
         else:
-            avg_monthly_spend = 0 # No historical data for this category
+            avg_monthly_spend = 0
 
         category_recent_total = monthly_data.get(target_month, 0)
 
         # Condition 1: Spending is 20% higher than historical average
-        # Ensure there's more than one month of data to make a meaningful comparison
         if len(monthly_data) > 1 and avg_monthly_spend > 0 and category_recent_total > avg_monthly_spend * 1.2:
             diff = category_recent_total - avg_monthly_spend
             result.append({
@@ -387,8 +422,8 @@ def optimize_budget():
                 "message": f"Spending is ₹{round(diff)} above your monthly average. Try to scale back."
             })
         
-        # Condition 2: Category consumes > 50% of total budget (for large categories/new users)
-        elif total_budget > 0 and category_recent_total > total_budget * 0.5:
+        # Condition 2: Category consumes > 50% of total budget (EXCLUDE FIXED COSTS)
+        elif total_budget > 0 and category_recent_total > total_budget * 0.5 and cat not in FIXED_CATS:
              result.append({
                 "category": cat,
                 "message": f"This category accounts for {round((category_recent_total/total_budget)*100)}% of your total budget."
@@ -466,13 +501,16 @@ def category_efficiency():
         cat_stats[r_cat][0] += r_amount
         cat_stats[r_cat][1] += 1
 
+    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
     results = []
     for cat, stats in cat_stats.items():
         total = stats[0]
         count = stats[1]
 
-        if total == 0 or count == 0:
-            level = "Low" # Or "N/A", depending on desired behavior for no transactions
+        if cat in FIXED_CATS:
+            level = "Fixed"
+        elif total == 0 or count == 0:
+            level = "N/A"
         else:
             avg = total / count  # average spend per transaction
 

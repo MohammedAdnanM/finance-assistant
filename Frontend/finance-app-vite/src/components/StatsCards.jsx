@@ -15,7 +15,7 @@ export default function StatsCards({ budget, prediction, transactions, anomalies
   const isOverBudget = prediction > budget && budget > 0;
   
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6 px-6">
+    <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 px-4 md:px-6">
 
       <div className="stat-card bg-gradient-to-br from-indigo-600 to-indigo-800 animate-entry stagger-1">
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -32,7 +32,7 @@ export default function StatsCards({ budget, prediction, transactions, anomalies
         <div className="absolute top-0 right-0 p-4 opacity-10">
             <SparklesIcon className="h-12 w-12 rotate-12" />
         </div>
-        <p className="text-white/70 font-medium text-xs uppercase tracking-widest">Predicted Expense</p>
+        <p className="text-white/70 font-medium text-xs uppercase tracking-widest">Predicted Monthly Expense</p>
         <h2 className="text-3xl font-black mt-2 drop-shadow-sm">{formatCurrency(prediction)}</h2>
         <div className="mt-2 flex items-center gap-2">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border 

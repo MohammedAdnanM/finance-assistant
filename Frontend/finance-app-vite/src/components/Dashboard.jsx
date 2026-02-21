@@ -365,7 +365,7 @@ export default function Dashboard({ logoutHandler, user }) {
 
         {/* MAIN DASHBOARD GRID */}
         {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 px-6 pb-20">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 px-4 md:px-6 pb-32 md:pb-20">
 
             {/* LEFT COLUMN: ADD & ANALYTICS */}
             <div className="xl:col-span-5 space-y-6">
@@ -385,9 +385,12 @@ export default function Dashboard({ logoutHandler, user }) {
                     cancelEdit={cancelEdit}
                 />
                 
-                <Analytics transactions={transactions} />
-                
-                <Forecast forecast={forecast} />
+                <div className="hidden md:block space-y-6">
+                    <Analytics transactions={transactions} />
+                    <div className="hidden xl:block">
+                        <Forecast forecast={forecast} />
+                    </div>
+                </div>
             </div>
 
             {/* RIGHT COLUMN: INSIGHTS & LIST */}
@@ -416,13 +419,13 @@ export default function Dashboard({ logoutHandler, user }) {
         )}
 
         {activeTab === 'savings' && (
-           <div className="p-6">
+           <div className="p-6 pb-32 md:pb-6">
                <Savings totalSavings={savingsData.total_savings} history={savingsData.history} />
            </div>
         )}
         
         {activeTab === 'history' && (
-            <div className="p-6">
+            <div className="p-6 pb-32 md:pb-6">
                  <TransactionList 
                     transactions={transactions}
                     anomalies={anomalies}
@@ -433,7 +436,7 @@ export default function Dashboard({ logoutHandler, user }) {
         )}
 
         {activeTab === 'analytics' && (
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="p-6 pb-32 md:pb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Analytics transactions={transactions} />
                 <Forecast forecast={forecast} />
             </div>

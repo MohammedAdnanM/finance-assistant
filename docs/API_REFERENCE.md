@@ -81,7 +81,9 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 
 ### Get Spending Prediction
 *   Endpoint: `GET /predict`
-*   Description: Predicts next month's spending based on history.
+*   Description: Predicts end-of-month spending.
+*   Logic: (Current Spent Fixed) + (Current Spent Variable) + (Variable Daily Velocity * Remaining Days).
+*   Response: `{"prediction": 4500.50}`
 
 ### Recommend Budget
 *   Endpoint: `GET /recommend-budget`
@@ -93,16 +95,20 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 
 ### Get Forecast
 *   Endpoint: `GET /forecast`
-*   Description: Returns 30-day daily spending forecast.
+*   Description: Returns a 30-day daily spending forecast.
+*   Response: `{"forecast": [{"date": "2023-11-01", "amount": 150.0}, ...]}`
 
 ### Optimize Budget
 *   Endpoint: `GET /optimize-budget`
-*   Query Params: `?month=YYYY-MM`
-*   Description: Analyzes spending efficiently and warns about overspending categories.
+*   Query Params: `?month=YYYY-MM` (optional)
+*   Description: Identifies overspending categories.
+*   Response: `[{"category": "Food", "message": "Spending is ₹500 above average..."}, ...]`
 
 ### Category Efficiency
 *   Endpoint: `GET /category-efficiency`
-*   Description: rates spending efficiency (High/Medium/Low) per category.
+*   Query Params: `?month=YYYY-MM` (optional)
+*   Description: Rates spending efficiency per category based on average transaction size. Labels fixed costs as "Fixed".
+*   Response: `[{"category": "Rent", "efficiency": "Fixed"}, {"category": "Food", "efficiency": "High"}]`
 
 ### Necessity Score
 *   Endpoint: `POST /necessity-score`

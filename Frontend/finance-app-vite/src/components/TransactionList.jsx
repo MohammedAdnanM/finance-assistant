@@ -54,8 +54,52 @@ export default function TransactionList({
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
-        <table className="w-full text-left">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 overflow-hidden">
+        {/* Mobile View: Cards */}
+        <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-800">
+            {transactions.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 text-sm">No transactions found</div>
+            ) : (
+                transactions.map((t) => (
+                    <div key={t.id} className="p-4 flex flex-col gap-3 bg-white dark:bg-[#111827]">
+                        <div className="flex justify-between items-start">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-gray-900 dark:text-white text-base">₹ {t.amount.toLocaleString()}</span>
+                                <span className="text-xs text-gray-500 mt-0.5">{t.date}</span>
+                            </div>
+                            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                {t.category}
+                            </span>
+                        </div>
+                        
+                        {anomalies.includes(t.id) && (
+                            <div className="flex items-center gap-1.5 text-[9px] px-2 py-1 rounded-md font-black uppercase tracking-widest bg-rose-500/10 text-rose-600 w-fit">
+                                <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
+                                Anomaly
+                            </div>
+                        )}
+
+                        <div className="flex gap-2 mt-1 justify-end">
+                            <button
+                                onClick={() => editTransaction(t)}
+                                className="flex-1 py-1.5 px-3 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2"
+                            >
+                                <PencilSquareIcon className="h-3 w-3" /> Edit
+                            </button>
+                            <button
+                                onClick={() => deleteTransaction(t)}
+                                className="flex-1 py-1.5 px-3 bg-red-50 text-red-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2"
+                            >
+                                <TrashIcon className="h-3 w-3" /> Delete
+                            </button>
+                        </div>
+                    </div>
+                ))
+            )}
+        </div>
+
+        {/* Desktop View: Table */}
+        <table className="w-full text-left hidden md:table">
           <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">
             <tr>
               <th className="p-4 font-medium">Date</th>
@@ -99,13 +143,13 @@ export default function TransactionList({
                   {/* AMOUNT */}
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-900 dark:text-white font-black text-lg">
+                      <span className="text-gray-900 dark:text-white font-bold text-base">
                         ₹ {t.amount.toLocaleString()}
                       </span>
 
                       {anomalies.includes(t.id) && (
                         <span
-                          className="flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest
+                          className="flex items-center gap-1.5 text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest
                                      bg-rose-500/10 text-rose-600 border border-rose-500/20
                                      dark:text-rose-400 animate-pulse-slow"
                         >

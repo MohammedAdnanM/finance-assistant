@@ -22,13 +22,13 @@ export default function Header({
 }) {
   return (
     <header
-      className="sticky top-0 z-20 mb-8 border-b border-gray-200 dark:border-white/5 glass transition-all duration-500 animate-entry"
+      className="sticky top-0 z-20 mb-4 md:mb-8 border-b border-gray-200 dark:border-white/5 glass transition-all duration-500 animate-entry"
     >
-      <div className="px-8 py-6 space-y-6">
+      <div className="px-4 md:px-8 py-4 md:py-6 space-y-4 md:space-y-6">
         {/* TOP ROW */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="animate-entry stagger-1">
-            <h2 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
               {user ? (
                 <>
                   Welcome back,{" "}
@@ -80,7 +80,7 @@ export default function Header({
         {/* BUDGET OVERVIEW */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6 rounded-[2rem] bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 shadow-xl shadow-black/5 animate-entry stagger-3">
             <div className="flex-1 space-y-3 min-w-[300px]">
-                <div className="flex justify-between items-end">
+                <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
                     <div className="group">
                         <label className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-[0.2em]">
                             Monthly Limit
@@ -100,8 +100,8 @@ export default function Header({
                         </div>
                     </div>
                     
-                    <div className="flex gap-8 mb-1">
-                        <div className="text-right">
+                    <div className="flex w-full md:w-auto justify-between md:justify-end gap-4 md:gap-8 mb-1">
+                        <div className="text-left md:text-right">
                         <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Spent</p>
                         <p className="text-xl font-black text-gray-900 dark:text-white">₹ {spent.toLocaleString()}</p>
                         </div>

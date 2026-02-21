@@ -56,6 +56,7 @@ export default function Login({
               loginHandler();
             }} 
             className="space-y-4"
+            autoComplete="off"
           >
             {/* Name Field (Register Only) */}
             {isRegistering && (
@@ -66,8 +67,11 @@ export default function Login({
                   <input
                     className="w-full pl-11 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-600"
                     placeholder="John Doe"
+                    onFocus={(e) => e.target.placeholder = ""}
+                    onBlur={(e) => e.target.placeholder = "John Doe"}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -82,8 +86,11 @@ export default function Login({
                   type="email"
                   className="w-full pl-11 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-600"
                   placeholder="name@company.com"
+                  onFocus={(e) => e.target.placeholder = ""}
+                  onBlur={(e) => e.target.placeholder = "name@company.com"}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -97,8 +104,11 @@ export default function Login({
                   type="password"
                   className="w-full pl-11 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-600"
                   placeholder="••••••••"
+                  onFocus={(e) => e.target.placeholder = ""}
+                  onBlur={(e) => e.target.placeholder = "••••••••"}
                   value={pass}
                   onChange={(e) => setPass(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -113,8 +123,11 @@ export default function Login({
                     type="password"
                     className="w-full pl-11 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all text-white placeholder-gray-600"
                     placeholder="••••••••"
+                    onFocus={(e) => e.target.placeholder = ""}
+                    onBlur={(e) => e.target.placeholder = "••••••••"}
                     value={confirmPass}
                     onChange={(e) => setConfirmPass(e.target.value)}
+                    autoComplete="new-password"
                   />
                 </div>
               </div>

@@ -71,13 +71,16 @@ export default function ChatCoach() {
     }
 
     return (
-        <div className="fixed bottom-8 right-8 z-50">
+        <div className="hidden md:block fixed bottom-8 right-8 z-50">
             {/* CHAT WINDOW */}
             {isOpen && (
-                <div className="absolute bottom-24 right-0 w-[400px] h-[600px] glass rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-entry">
+                <div 
+                    className="fixed inset-0 md:absolute md:bottom-24 md:right-0 md:inset-auto md:w-[400px] md:h-[600px] glass md:rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col overflow-hidden animate-entry z-[60]"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     
                     {/* Header */}
-                    <div className="p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white flex items-center justify-between">
+                    <div className="p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white flex items-center justify-between shrink-0 safe-top">
                         <div className="flex items-center gap-4">
                             <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-xl border border-white/20 shadow-inner">
                                 <SparklesIcon className="h-6 w-6 text-indigo-200" />
@@ -144,15 +147,18 @@ export default function ChatCoach() {
                                 </div>
                             </div>
                         )}
+                        <div className="h-16 md:hidden"></div> {/* Spacer for mobile */}
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={sendMessage} className="p-6 bg-white/50 dark:bg-obsidian/90 backdrop-blur-2xl border-t border-gray-100 dark:border-white/5">
+                    <form onSubmit={sendMessage} className="p-6 bg-white/50 dark:bg-obsidian/90 backdrop-blur-2xl border-t border-gray-100 dark:border-white/5 shrink-0 safe-bottom">
                         <div className="flex gap-3">
                             <input 
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Ask about your budget..."
+                                type="text"
+                                enterKeyHint="send"
                                 className="flex-1 bg-gray-100 dark:bg-white/5 border-none rounded-2xl px-5 py-3 text-sm focus:ring-2 focus:ring-indigo-500 transition-all dark:text-white dark:placeholder:text-gray-500 outline-none"
                             />
                             <button 

@@ -9,11 +9,9 @@ Updated Functionality:
   - Budget Optimization: Analyzes efficiency and suggests target monthly budgets.
   - Pattern Matching: Fallback logic for basic financial queries.
 """
-# import pandas as pd
 import math
 from datetime import date, datetime
 from db import get_connection
-# import numpy as np
 
 
 # Removed insecure global load_data function to prevent memory leakage and privacy issues.
@@ -32,6 +30,14 @@ def detect_anomalies(user_id=None):
     if not rows:
         return []
     
+    # Fetch user budget for scale context
+    user_budget = 0
+    if user_id:
+        # Get most recent budget
+        cur.execute("SELECT amount FROM budget WHERE user_id=? ORDER BY month DESC LIMIT 1", (user_id,))
+        b_row = cur.fetchone()
+        user_budget = b_row[0] if b_row else 0
+
     # Data: id, amount, category
     data = [{"id": r[0], "amount": r[1], "category": r[2]} for r in rows]
     
@@ -39,13 +45,16 @@ def detect_anomalies(user_id=None):
         if not vals: return 0, 0
         n = len(vals)
         mean = sum(vals) / n
-        if n < 2: return mean, 0 # Standard deviation is undefined or 0 for less than 2 points
+        if n < 2: return mean, 0
         variance = sum((x - mean) ** 2 for x in vals) / n
         return mean, math.sqrt(variance)
 
-    # Global fallback for small transactions
+    # Global fallback for small transactions - now requires a minimum sample size
     small_amounts = [d['amount'] for d in data if d['amount'] < 10000]
-    global_mean = sum(small_amounts) / len(small_amounts) if small_amounts else None
+    global_mean = sum(small_amounts) / len(small_amounts) if len(small_amounts) >= 5 else None
+
+    # Categories that are naturally large and should be exempt from "global small mean" fallback
+    large_categories = ["Rent", "Bills", "Education", "Health", "Investment"]
 
     categories = set(d['category'] for d in data)
     anomaly_ids = []
@@ -54,6 +63,7 @@ def detect_anomalies(user_id=None):
         cat_items = [d for d in data if d['category'] == cat]
         amounts = [d['amount'] for d in cat_items]
         
+        # Method 1: Statistical Outliers (requires at least 3 transactions in this category)
         if len(cat_items) >= 3:
             mean, std = get_stats(amounts)
             if std == 0:
@@ -62,10 +72,22 @@ def detect_anomalies(user_id=None):
             for item in cat_items:
                 if item['amount'] > mean + 2 * std:
                     anomaly_ids.append(item['id'])
-        elif global_mean is not None:
+        
+        # Method 2: Global Fallback (for new users/categories)
+        elif global_mean is not None and cat not in large_categories:
             # Fallback for small categories: flag if it's 5x the global mean of small transactions
             for item in cat_items:
                 if item['amount'] > global_mean * 5:
+                    # Also check against budget - if it's less than 50% of monthly budget, it's likely fine
+                    if user_budget > 0 and item['amount'] < user_budget * 0.5:
+                        continue
+                    anomaly_ids.append(item['id'])
+        
+        # Method 3: Budget check (for large categories with very few records)
+        elif user_budget > 0 and cat in large_categories:
+            for item in cat_items:
+                # Only flag as anomaly if a single "Rent" etc. exceeds the entire budget or is extremely high
+                if item['amount'] > user_budget * 1.2:
                     anomaly_ids.append(item['id'])
 
     return anomaly_ids
@@ -76,27 +98,43 @@ def recommend_budget(data):
     if not data:
         return 0
 
-    # Group by month (YYYY-MM)
-    monthly_sums = {}
+    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
+
+    # Group by month (YYYY-MM) and separate fixed/variable
+    monthly_data = {} # {month: {'fixed': 0, 'variable': 0}}
     for item in data:
         dt_str = item['date']
-        # Extract YYYY-MM from 'YYYY-MM-DD' string
         month = dt_str[:7]
-        monthly_sums[month] = monthly_sums.get(month, 0) + item['amount']
+        cat = item.get('category', '')
+        
+        if month not in monthly_data:
+            monthly_data[month] = {'fixed': 0, 'variable': 0}
+            
+        if cat in FIXED_CATS:
+            monthly_data[month]['fixed'] += item['amount']
+        else:
+            monthly_data[month]['variable'] += item['amount']
 
-    # Get last 3 months by chronological order
-    sorted_months = sorted(monthly_sums.keys())
-    last_3_months_data = []
-    if len(sorted_months) >= 3:
-        last_3_months_data = [monthly_sums[m] for m in sorted_months[-3:]]
-    else:
-        last_3_months_data = [monthly_sums[m] for m in sorted_months] # Use all available months if less than 3
-    
-    if not last_3_months_data:
+    sorted_months = sorted(monthly_data.keys())
+    if not sorted_months:
         return 0
 
-    avg_spend = sum(last_3_months_data) / len(last_3_months_data)
-    return round(avg_spend * 1.15, 2)
+    # Use up to last 3 months
+    recent_months = sorted_months[-3:]
+    
+    avg_fixed = sum(monthly_data[m]['fixed'] for m in recent_months) / len(recent_months)
+    avg_variable = sum(monthly_data[m]['variable'] for m in recent_months) / len(recent_months)
+    
+    # If we only have one month and it's mostly fixed costs, 
+    # we should assume variable costs will increase as they use the app.
+    if len(recent_months) == 1 and avg_variable < avg_fixed * 0.2:
+        # User likely just added Rent/Bills and nothing else yet.
+        # Suggest a budget that includes a reasonable buffer for variable spending (e.g., 40% variable)
+        return round(avg_fixed * 1.4, 2)
+
+    # Standard recommendation: Fixed + (Variable * 1.15 buffer)
+    recommended = avg_fixed + (avg_variable * 1.15)
+    return round(recommended, 2)
 
 
 import os

@@ -58,12 +58,12 @@ export default function SmartInsights({
         </div>
 
         {/* Category Efficiency */}
-        <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow flex flex-col min-w-0">
+        <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow flex flex-col min-w-0 h-fit">
           <h4 className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-4 flex items-center gap-2 flex-nowrap overflow-hidden">
              <span className="text-lg shrink-0">📊</span>
              <span className="truncate">Category Efficiency</span>
           </h4>
-          <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-1" style={{ minHeight: "250px", maxHeight: "400px" }}>
+          <div className="overflow-y-auto pr-1 custom-scrollbar space-y-1" style={{ maxHeight: "400px" }}>
             {efficiency.length > 0 ? (
                 efficiency.map((e, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/40 border border-transparent hover:border-teal-500/30 transition-all group">
