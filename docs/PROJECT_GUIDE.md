@@ -6,7 +6,7 @@ Finance Assistant is a full-stack web application designed to help users track e
 ### Tech Stack
 *   Frontend: React (Vite), Tailwind CSS
 *   Backend: Flask (Python)
-*   Database: SQLite
+*   Database: SQLite (Local) / PostgreSQL (Production)
 *   AI: Google Gemini Flash API, Scikit-learn (Linear Regression)
 
 ---
@@ -17,10 +17,10 @@ Finance Assistant is a full-stack web application designed to help users track e
 finance assistant/
 ├── Backend/                 # Flask Server & Logic
 │   ├── app.py               # Main API Application
-│   ├── db.py                # Database Connection & Models
+│   ├── db.py                # Database Connection & Models (Support SSL/Pg)
 │   ├── utils.py             # Helper func, AI & ML logic
 │   ├── model_train.py       # ML Training Script
-│   ├── finance.db           # SQLite Database (Auto-created)
+│   ├── finance.db           # SQLite Database (Fallback)
 │   └── requirements.txt     # Python Dependencies
 │
 ├── Frontend/finance-app-vite/ # React Application
@@ -52,6 +52,8 @@ finance assistant/
     *   Add your Gemini API Key:
         ```
         GEMINI_API_KEY=your_api_key_here
+        JWT_SECRET_KEY=your_secret_here
+        DATABASE_URL=postgres://user:pass@host:port/dbname (Optional for Prod)
         ```
 4.  Run the Server:
     ```bash

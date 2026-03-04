@@ -1,6 +1,4 @@
-# Database Schema
-
-The application uses SQLite (`finance.db`) for data storage.
+The application uses SQLite (`finance.db`) for local development and PostgreSQL for production environments (like Render).
 
 ## Tables
 
