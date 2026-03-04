@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "finance.db")
 DATABASE_URL = os.getenv("DATABASE_URL")
+PLACEHOLDER = "%s" if DATABASE_URL else "?"
 
 def get_connection():
     if DATABASE_URL:

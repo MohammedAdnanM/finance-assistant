@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from db import get_connection, init_db
+from db import get_connection, init_db, PLACEHOLDER, DATABASE_URL
 from utils import detect_anomalies, recommend_budget, financial_coach_reply
 
 import pickle
@@ -77,12 +77,12 @@ def register():
     cur = conn.cursor()
     
     # Check if user exists
-    user = cur.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    user = cur.execute(f"SELECT id FROM users WHERE email={PLACEHOLDER}", (email,)).fetchone()
     if user:
         return jsonify({"msg": "User already exists"}), 400
 
     hashed = generate_password_hash(password)
-    cur.execute("INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)", (email, hashed, name))
+    cur.execute(f"INSERT INTO users (email, password_hash, name) VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})", (email, hashed, name))
     conn.commit()
     
     # Generate token for immediate login
@@ -107,7 +107,7 @@ def login():
 
     conn = get_connection()
     cur = conn.cursor()
-    user = cur.execute("SELECT id, password_hash, name, email FROM users WHERE email=?", (email,)).fetchone()
+    user = cur.execute(f"SELECT id, password_hash, name, email FROM users WHERE email={PLACEHOLDER}", (email,)).fetchone()
 
     if not user or not check_password_hash(user[1], password):
         return jsonify({"msg": "Bad email or password"}), 401
@@ -128,7 +128,7 @@ def get_user():
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    user = cur.execute("SELECT id, email, name FROM users WHERE id=?", (user_id,)).fetchone()
+    user = cur.execute(f"SELECT id, email, name FROM users WHERE id={PLACEHOLDER}", (user_id,)).fetchone()
     
     if not user:
         return jsonify({"msg": "User not found"}), 404
@@ -145,7 +145,7 @@ def delete_tx(id):
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("DELETE FROM transactions WHERE id=? AND user_id=?", (id, user_id))
+    cur.execute(f"DELETE FROM transactions WHERE id={PLACEHOLDER} AND user_id={PLACEHOLDER}", (id, user_id))
     conn.commit()
     return jsonify({"status": "deleted"}), 200
 
@@ -162,8 +162,16 @@ def set_budget():
         
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("REPLACE INTO budget (user_id, month, amount) VALUES (?, ?, ?)",
-                (user_id, data["month"], data["amount"]))
+    if DATABASE_URL:
+        # Postgres UPSERT
+        cur.execute(f"""
+            INSERT INTO budget (user_id, month, amount) VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})
+            ON CONFLICT (user_id, month) DO UPDATE SET amount = EXCLUDED.amount
+        """, (user_id, data["month"], data["amount"]))
+    else:
+        # SQLite
+        cur.execute(f"REPLACE INTO budget (user_id, month, amount) VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})",
+                    (user_id, data["month"], data["amount"]))
     conn.commit()
     return jsonify({"status": "ok"})
 
@@ -173,7 +181,7 @@ def get_budget(month):
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, month)).fetchone()
+    row = cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, month)).fetchone()
     return jsonify({"budget": row[0] if row else 0})
 
 
@@ -189,9 +197,9 @@ def add_transaction():
     cur = conn.cursor()
 
     transaction_type = data.get("type", "expense").lower()
-    cur.execute("""
+    cur.execute(f"""
         INSERT INTO transactions (user_id, date, category, amount, notes, type)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})
     """, (user_id, data["date"], data.get("category", ""), data["amount"], data.get("notes", ""), transaction_type))
 
     conn.commit()
@@ -206,16 +214,16 @@ def get_transactions():
     cur = conn.cursor()
 
     if month:
-        rows = cur.execute("""
+        rows = cur.execute(f"""
             SELECT id, date, category, amount, notes, type
             FROM transactions
-            WHERE user_id=? AND substr(date,1,7)=?
+            WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER}
             ORDER BY date
         """, (user_id, month,)).fetchall()
     else:
-        rows = cur.execute("""
+        rows = cur.execute(f"""
             SELECT id, date, category, amount, notes, type
-            FROM transactions WHERE user_id=? ORDER BY date
+            FROM transactions WHERE user_id={PLACEHOLDER} ORDER BY date
         """, (user_id,)).fetchall()
 
     return jsonify({
@@ -242,7 +250,7 @@ def predict():
     days_passed = max(today.day, 1)
     days_in_month = 30 # Simplified
     
-    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND substr(date,1,7)=? AND type='expense'", (user_id, this_month_str))
+    cur.execute(f"SELECT date, amount, category FROM transactions WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER} AND type='expense'", (user_id, this_month_str))
     rows = cur.fetchall()
     
     if not rows:
@@ -284,7 +292,7 @@ def recommend_budget_api():
     user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute(f"SELECT date, amount FROM transactions WHERE user_id={PLACEHOLDER}", (user_id,))
     rows = cur.fetchall()
     # The recommend_budget utility function expects a list of dictionaries or similar structure
     data = [{"date": r[0], "amount": r[1]} for r in rows]
@@ -309,7 +317,7 @@ def forecast():
     
     # Get last 60 days of data for a better trend
     cutoff = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
-    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND date >= ? AND type='expense'", (user_id, cutoff))
+    cur.execute(f"SELECT date, amount, category FROM transactions WHERE user_id={PLACEHOLDER} AND date >= {PLACEHOLDER} AND type='expense'", (user_id, cutoff))
     rows = cur.fetchall()
     
     if not rows:
@@ -359,10 +367,10 @@ def update_transaction(id):
     cur = conn.cursor()
 
     transaction_type = data.get("type", "expense").lower()
-    cur.execute("""
+    cur.execute(f"""
         UPDATE transactions
-        SET date=?, category=?, amount=?, notes=?, type=?
-        WHERE id=? AND user_id=?
+        SET date={PLACEHOLDER}, category={PLACEHOLDER}, amount={PLACEHOLDER}, notes={PLACEHOLDER}, type={PLACEHOLDER}
+        WHERE id={PLACEHOLDER} AND user_id={PLACEHOLDER}
     """, (data["date"], data.get("category", ""), data["amount"], data.get("notes", ""), transaction_type, id, user_id))
 
     conn.commit()
@@ -376,7 +384,7 @@ def optimize_budget():
     month_param = request.args.get("month") # YYYY-MM
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
+    cur.execute(f"SELECT date, category, amount FROM transactions WHERE user_id={PLACEHOLDER} AND type='expense'", (user_id,))
     rows = cur.fetchall()
     if not rows:
         return jsonify([])
@@ -401,7 +409,7 @@ def optimize_budget():
     target_month = month_param if month_param else today_month
 
     # Get total global budget for comparison
-    budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, today_month)).fetchone()
+    budget_row = cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, today_month)).fetchone()
     total_budget = budget_row[0] if budget_row else 0
 
     FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
@@ -492,9 +500,9 @@ def category_efficiency():
     conn = get_connection()
     cur = conn.cursor()
     if month:
-        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=? AND type='expense'", (user_id, month))
+        cur.execute(f"SELECT category, amount FROM transactions WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER} AND type='expense'", (user_id, month))
     else:
-        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
+        cur.execute(f"SELECT category, amount FROM transactions WHERE user_id={PLACEHOLDER} AND type='expense'", (user_id,))
     rows = cur.fetchall()
 
     cat_stats = {} # {category: [total_amount, count]}
@@ -540,11 +548,11 @@ def get_savings():
     cur = conn.cursor()
     
     # Get all transactions
-    cur.execute("SELECT date, amount, type FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute(f"SELECT date, amount, type FROM transactions WHERE user_id={PLACEHOLDER}", (user_id,))
     tx_rows = cur.fetchall()
     
     # Get all budgets
-    cur.execute("SELECT month, amount FROM budget WHERE user_id=?", (user_id,))
+    cur.execute(f"SELECT month, amount FROM budget WHERE user_id={PLACEHOLDER}", (user_id,))
     budget_rows = cur.fetchall()
     
     if not tx_rows and not budget_rows:
