@@ -18,10 +18,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
     if DATABASE_URL:
-        # PostgreSQL (Production/Render)
-        return psycopg2.connect(DATABASE_URL)
+        # Fix: Render uses 'postgres://' but psycopg2 needs 'postgresql://'
+        url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(url, sslmode="require")
     else:
-        # SQLite (Development)
         return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 def init_db():
