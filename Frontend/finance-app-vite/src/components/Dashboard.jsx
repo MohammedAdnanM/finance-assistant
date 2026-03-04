@@ -10,7 +10,7 @@
  *  - Robust Undo: Fault-tolerant transaction restoration with real-time UI notifications.
  */
 import React, { useEffect, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 // Components
 import Sidebar from "./Sidebar";
@@ -58,7 +58,9 @@ export default function Dashboard({ logoutHandler, user }) {
 
   const [date, setDate] = useState(`${month}-01`);
   const [category, setCategory] = useState("");
+  const [notes, setNotes] = useState("");
   const [amount, setAmount] = useState("");
+  const [type, setType] = useState("expense");
 
   const [transactions, setTransactions] = useState([]);
   const [prediction, setPrediction] = useState(null);
@@ -66,6 +68,7 @@ export default function Dashboard({ logoutHandler, user }) {
 
   const [budget, setBudget] = useState(0);
   const [spent, setSpent] = useState(0);
+  const [income, setIncome] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [optimizations, setOptimizations] = useState([]);
@@ -124,8 +127,8 @@ export default function Dashboard({ logoutHandler, user }) {
   async function addTransaction(e) {
     if (e) e.preventDefault();
 
-    if (!date || !category || !amount) {
-      error("All fields required");
+    if (!date || !amount) {
+      error("Date and Amount are required");
       return;
     }
 
@@ -133,6 +136,8 @@ export default function Dashboard({ logoutHandler, user }) {
       date,
       category,
       amount: parseFloat(amount),
+      notes,
+      type: type ? type.toLowerCase() : "expense",
     };
 
     const endpoint = editingId ? `/update/${editingId}` : `/add`;
@@ -146,6 +151,9 @@ export default function Dashboard({ logoutHandler, user }) {
              // Optional: keep category for bulk entry?
         }
         setAmount("");
+        setNotes("");
+        setCategory("");
+        setType("expense");
         setEditingId(null);
         
         // Refresh all data
@@ -272,6 +280,8 @@ export default function Dashboard({ logoutHandler, user }) {
     setDate(t.date);
     setCategory(t.category);
     setAmount(t.amount);
+    setNotes(t.notes || "");
+    setType(t.type || "expense");
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -280,6 +290,8 @@ export default function Dashboard({ logoutHandler, user }) {
     setDate(`${month}-01`);
     setCategory("");
     setAmount("");
+    setNotes("");
+    setType("expense");
   }
 
   /* ---------------- EFFECTS ---------------- */
@@ -297,8 +309,17 @@ export default function Dashboard({ logoutHandler, user }) {
   }, [month]);
 
   useEffect(() => {
-    const total = transactions.reduce((s, t) => s + Number(t.amount), 0);
-    setSpent(total);
+    // Robust expense: 'expense' or anything NOT 'income' (case-insensitive)
+    const totalSpent = transactions
+      .filter(t => !t.type || t.type.toLowerCase() !== 'income')
+      .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    setSpent(totalSpent);
+
+    // Robust income: strictly 'income' (case-insensitive)
+    const totalIncome = transactions
+      .filter(t => t.type && t.type.toLowerCase() === 'income')
+      .reduce((s, t) => s + (parseFloat(t.amount) || 0), 0);
+    setIncome(totalIncome);
   }, [transactions]);
 
 
@@ -322,24 +343,6 @@ export default function Dashboard({ logoutHandler, user }) {
 
       {/* CONTENT */}
       <main className="flex-1 overflow-y-auto">
-        <Toaster 
-            position="bottom-right" 
-            toastOptions={{
-                className: 'glass !bg-obsidian !text-white border border-white/10 !rounded-2xl',
-                style: {
-                    background: '#161b22',
-                    color: '#fff',
-                    borderRadius: '1rem',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                },
-                success: {
-                    iconTheme: {
-                        primary: '#10b981',
-                        secondary: '#fff',
-                    },
-                },
-            }}
-        />
         
         {/* HEADER */}
         <Header 
@@ -350,6 +353,7 @@ export default function Dashboard({ logoutHandler, user }) {
             saveBudget={saveBudget}
             recommendedBudget={recommendedBudget}
             spent={spent}
+            income={income}
             user={user}
         />
 
@@ -378,6 +382,10 @@ export default function Dashboard({ logoutHandler, user }) {
                     setCategory={setCategory}
                     amount={amount}
                     setAmount={setAmount}
+                    notes={notes}
+                    setNotes={setNotes}
+                    type={type}
+                    setType={setType}
                     showSuggestions={showSuggestions}
                     setShowSuggestions={setShowSuggestions}
                     categoriesList={categoriesList}
@@ -386,7 +394,7 @@ export default function Dashboard({ logoutHandler, user }) {
                 />
                 
                 <div className="hidden md:block space-y-6">
-                    <Analytics transactions={transactions} />
+                    <Analytics transactions={transactions} budget={budget} />
                     <div className="hidden xl:block">
                         <Forecast forecast={forecast} />
                     </div>
@@ -419,13 +427,13 @@ export default function Dashboard({ logoutHandler, user }) {
         )}
 
         {activeTab === 'savings' && (
-           <div className="p-6 pb-32 md:pb-6">
+           <div className="p-4 md:p-8 pb-32">
                <Savings totalSavings={savingsData.total_savings} history={savingsData.history} />
            </div>
         )}
         
         {activeTab === 'history' && (
-            <div className="p-6 pb-32 md:pb-6">
+            <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
                  <TransactionList 
                     transactions={transactions}
                     anomalies={anomalies}
@@ -436,8 +444,8 @@ export default function Dashboard({ logoutHandler, user }) {
         )}
 
         {activeTab === 'analytics' && (
-            <div className="p-6 pb-32 md:pb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Analytics transactions={transactions} />
+            <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto space-y-8">
+                <Analytics transactions={transactions} budget={budget} />
                 <Forecast forecast={forecast} />
             </div>
         )}

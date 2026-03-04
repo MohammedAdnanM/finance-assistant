@@ -42,13 +42,15 @@ export default function StatsCards({ budget, prediction, transactions, anomalies
         </div>
       </div>
 
-      <div className="stat-card bg-gradient-to-br from-teal-600 to-teal-800 animate-entry stagger-3">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
+      <div className="stat-card bg-gradient-to-br from-emerald-600 to-emerald-800 animate-entry stagger-3 group">
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <ClipboardDocumentListIcon className="h-12 w-12 -rotate-12" />
         </div>
-        <p className="text-white/70 font-medium text-xs uppercase tracking-widest">Transactions</p>
-        <h2 className="text-3xl font-black mt-2 drop-shadow-sm">{transactions.length}</h2>
-        <p className="text-[10px] text-white/50 mt-1 italic">Recorded this month</p>
+        <p className="text-white/70 font-medium text-xs uppercase tracking-widest">Monthly Income</p>
+        <h2 className="text-3xl font-black mt-2 drop-shadow-sm">
+            {formatCurrency(transactions.filter(t => t.type && t.type.toLowerCase() === 'income').reduce((s, t) => s + (parseFloat(t.amount) || 0), 0))}
+        </h2>
+        <p className="text-[10px] text-white/50 mt-1 italic">Credits this month</p>
       </div>
 
       <div className="stat-card bg-gradient-to-br from-rose-600 to-rose-800 animate-entry stagger-4">

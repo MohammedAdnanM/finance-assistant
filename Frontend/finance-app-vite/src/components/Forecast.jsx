@@ -41,7 +41,9 @@ export default function Forecast({ forecast }) {
                 <XAxis dataKey="date" stroke="#9CA3AF" tick={{fontSize: 12}} />
                 <YAxis stroke="#9CA3AF" tick={{fontSize: 12}} />
                 <Tooltip 
-                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1f2937', color: '#fff' }}
+                     itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                     labelStyle={{ color: '#9CA3AF' }}
                 />
                 <Line
                 type="monotone"

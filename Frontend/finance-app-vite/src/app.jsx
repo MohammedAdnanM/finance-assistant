@@ -87,7 +87,7 @@ export default function App() {
         const data = await res.json();
         if (res.ok) {
             if (isRegistering) {
-                success("Account created! Logging in...");
+                success("Account created! Logging in...", { duration: 1500 });
                 // Save token and log in immediately
                 localStorage.setItem("token", data.access_token);
                 localStorage.setItem("user", "true");
@@ -103,7 +103,7 @@ export default function App() {
                 setEmail("");
                 setPass("");
                 setLoggedIn(true);
-                success("Welcome back!");
+                success("Welcome back!", { duration: 1500 });
             }
         } else {
             error(data.msg || "Authentication failed");

@@ -26,8 +26,8 @@ export default function TransactionList({
 
     autoTable(doc, {
       startY: 30,
-      head: [["Date", "Category", "Amount"]],
-      body: transactions.map((t) => [t.date, t.category, `₹${t.amount}`]),
+      head: [["Date", "Category", "Amount", "Notes", "Type"]],
+      body: transactions.map((t) => [t.date, t.category || "-", `₹${t.amount}`, t.notes || "-", t.type || "expense"]),
     });
 
     doc.save("Finance-Summary.pdf");
@@ -64,13 +64,21 @@ export default function TransactionList({
                     <div key={t.id} className="p-4 flex flex-col gap-3 bg-white dark:bg-[#111827]">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col">
-                                <span className="font-bold text-gray-900 dark:text-white text-base">₹ {t.amount.toLocaleString()}</span>
+                                <span className={`font-bold text-base ${(t.type && t.type.toLowerCase() === 'income') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                    {(t.type && t.type.toLowerCase() === 'income') ? '+' : '-'} ₹ {t.amount.toLocaleString()}
+                                </span>
                                 <span className="text-xs text-gray-500 mt-0.5">{t.date}</span>
                             </div>
                             <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                {t.category}
+                                {t.category || "Uncategorized"}
                             </span>
                         </div>
+
+                        {t.notes && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+                                "{t.notes}"
+                            </p>
+                        )}
                         
                         {anomalies.includes(t.id) && (
                             <div className="flex items-center gap-1.5 text-[9px] px-2 py-1 rounded-md font-black uppercase tracking-widest bg-rose-500/10 text-rose-600 w-fit">
@@ -104,6 +112,7 @@ export default function TransactionList({
             <tr>
               <th className="p-4 font-medium">Date</th>
               <th className="p-4 font-medium">Category</th>
+              <th className="p-4 font-medium">Notes</th>
               <th className="p-4 font-medium">Amount</th>
               <th className="p-4 text-center font-medium">Actions</th>
             </tr>
@@ -112,7 +121,7 @@ export default function TransactionList({
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan="4" className="p-16 text-center">
+                <td colSpan="5" className="p-16 text-center">
                     <div className="flex flex-col items-center justify-center animate-entry">
                         <div className="h-24 w-24 rounded-full bg-indigo-50 dark:bg-indigo-500/5 flex items-center justify-center mb-6 border border-indigo-100 dark:border-indigo-500/10">
                             <span className="text-5xl">✨</span>
@@ -134,17 +143,22 @@ export default function TransactionList({
                   <td className="p-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap text-sm">{t.date}</td>
 
                   {/* CATEGORY */}
-                  <td className="p-4">
+                   <td className="p-4">
                     <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        {t.category}
+                        {t.category || "Uncategorized"}
                     </span>
+                  </td>
+
+                  {/* NOTES */}
+                  <td className="p-4 text-gray-500 dark:text-gray-400 text-sm italic max-w-xs truncate">
+                    {t.notes || "-"}
                   </td>
 
                   {/* AMOUNT */}
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <span className="text-gray-900 dark:text-white font-bold text-base">
-                        ₹ {t.amount.toLocaleString()}
+                      <span className={`font-bold text-base ${(t.type && t.type.toLowerCase() === 'income') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                        {(t.type && t.type.toLowerCase() === 'income') ? '+' : '-'} ₹ {t.amount.toLocaleString()}
                       </span>
 
                       {anomalies.includes(t.id) && (

@@ -26,7 +26,9 @@ def init_db():
             user_id INTEGER,
             date TEXT,
             category TEXT,
-            amount REAL
+            amount REAL,
+            notes TEXT,
+            type TEXT DEFAULT 'expense'
         )
     """)
 

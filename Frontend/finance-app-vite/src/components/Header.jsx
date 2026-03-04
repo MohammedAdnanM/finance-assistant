@@ -18,6 +18,7 @@ export default function Header({
   saveBudget,
   recommendedBudget,
   spent,
+  income,
   user
 }) {
   return (
@@ -107,8 +108,8 @@ export default function Header({
                         </div>
                         <div className="text-right">
                         <p className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">Available</p>
-                        <p className={`text-xl font-black ${budget - spent < 0 ? "text-rose-500" : "text-emerald-500"}`}>
-                            ₹ {(budget - spent).toLocaleString()}
+                        <p className={`text-xl font-black ${Number(budget) - Number(spent) + Number(income) < 0 ? "text-rose-500" : "text-emerald-500"}`}>
+                            ₹ {(Number(budget) - Number(spent) + Number(income)).toLocaleString()}
                         </p>
                         </div>
                     </div>

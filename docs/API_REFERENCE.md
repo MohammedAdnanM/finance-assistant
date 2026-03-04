@@ -119,7 +119,7 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 
 ## AI Assistant
 
-### Chat with Coach
+### Chat with CoachChat
 *   Endpoint: `POST /chat`
 *   Body: `{"message": "How am I doing this month?"}`
 *   Response: AI-generated financial advice using Gemini.

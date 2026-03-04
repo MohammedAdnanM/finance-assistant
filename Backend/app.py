@@ -187,10 +187,11 @@ def add_transaction():
     conn = get_connection()
     cur = conn.cursor()
 
+    transaction_type = data.get("type", "expense").lower()
     cur.execute("""
-        INSERT INTO transactions (user_id, date, category, amount)
-        VALUES (?, ?, ?, ?)
-    """, (user_id, data["date"], data["category"], data["amount"]))
+        INSERT INTO transactions (user_id, date, category, amount, notes, type)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user_id, data["date"], data.get("category", ""), data["amount"], data.get("notes", ""), transaction_type))
 
     conn.commit()
     return jsonify({"status": "success"}), 200
@@ -205,20 +206,20 @@ def get_transactions():
 
     if month:
         rows = cur.execute("""
-            SELECT id, date, category, amount
+            SELECT id, date, category, amount, notes, type
             FROM transactions
             WHERE user_id=? AND substr(date,1,7)=?
             ORDER BY date
         """, (user_id, month,)).fetchall()
     else:
         rows = cur.execute("""
-            SELECT id, date, category, amount
+            SELECT id, date, category, amount, notes, type
             FROM transactions WHERE user_id=? ORDER BY date
         """, (user_id,)).fetchall()
 
     return jsonify({
         "transactions": [
-            {"id": r[0], "date": r[1], "category": r[2], "amount": r[3]}
+            {"id": r[0], "date": r[1], "category": r[2], "amount": r[3], "notes": r[4], "type": r[5]}
             for r in rows
         ]
     })
@@ -240,7 +241,7 @@ def predict():
     days_passed = max(today.day, 1)
     days_in_month = 30 # Simplified
     
-    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND substr(date,1,7)=?", (user_id, this_month_str))
+    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND substr(date,1,7)=? AND type='expense'", (user_id, this_month_str))
     rows = cur.fetchall()
     
     if not rows:
@@ -307,7 +308,7 @@ def forecast():
     
     # Get last 60 days of data for a better trend
     cutoff = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
-    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND date >= ?", (user_id, cutoff))
+    cur.execute("SELECT date, amount, category FROM transactions WHERE user_id=? AND date >= ? AND type='expense'", (user_id, cutoff))
     rows = cur.fetchall()
     
     if not rows:
@@ -356,11 +357,12 @@ def update_transaction(id):
     conn = get_connection()
     cur = conn.cursor()
 
+    transaction_type = data.get("type", "expense").lower()
     cur.execute("""
         UPDATE transactions
-        SET date=?, category=?, amount=?
+        SET date=?, category=?, amount=?, notes=?, type=?
         WHERE id=? AND user_id=?
-    """, (data["date"], data["category"], data["amount"], id, user_id))
+    """, (data["date"], data.get("category", ""), data["amount"], data.get("notes", ""), transaction_type, id, user_id))
 
     conn.commit()
     return jsonify({"status": "updated"}), 200
@@ -373,7 +375,7 @@ def optimize_budget():
     month_param = request.args.get("month") # YYYY-MM
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
     rows = cur.fetchall()
     if not rows:
         return jsonify([])
@@ -489,9 +491,9 @@ def category_efficiency():
     conn = get_connection()
     cur = conn.cursor()
     if month:
-        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=?", (user_id, month))
+        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND substr(date,1,7)=? AND type='expense'", (user_id, month))
     else:
-        cur.execute("SELECT category, amount FROM transactions WHERE user_id=?", (user_id,))
+        cur.execute("SELECT category, amount FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
     rows = cur.fetchall()
 
     cat_stats = {} # {category: [total_amount, count]}
@@ -537,7 +539,7 @@ def get_savings():
     cur = conn.cursor()
     
     # Get all transactions
-    cur.execute("SELECT date, amount FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute("SELECT date, amount, type FROM transactions WHERE user_id=?", (user_id,))
     tx_rows = cur.fetchall()
     
     # Get all budgets
@@ -547,36 +549,53 @@ def get_savings():
     if not tx_rows and not budget_rows:
         return jsonify({"total_savings": 0, "history": []})
 
-    # Group spending by month
+    # Group spending and income by month
     monthly_spent = {}
-    for r_date_str, r_amount in tx_rows:
+    monthly_income = {}
+    for r_date_str, r_amount, r_type in tx_rows:
         try:
-            r_month = r_date_str[:7] # Extract YYYY-MM
-            monthly_spent[r_month] = monthly_spent.get(r_month, 0) + r_amount
+            r_month = r_date_str[:7]
+            if r_type == 'income':
+                monthly_income[r_month] = monthly_income.get(r_month, 0) + r_amount
+            else:
+                monthly_spent[r_month] = monthly_spent.get(r_month, 0) + r_amount
         except (TypeError, IndexError):
-            pass # Skip invalid dates
+            pass
 
     # Prepare budgets dictionary
     budgets = {b[0]: b[1] for b in budget_rows}
     
-    # Collect all unique months from both transactions and budgets
-    all_months = set(list(monthly_spent.keys()) + list(budgets.keys()))
+    # Collect all unique months
+    all_months = set(list(monthly_spent.keys()) + list(budgets.keys()) + list(monthly_income.keys()))
     
     current_month_str = datetime.now().strftime("%Y-%m")
     history = []
     total_savings = 0
     
-    # Iterate through months, sorted for consistent output
+    # Total direct manual income (that doesn't fit in a specific month history in a budget-centric view, or does it?)
+    # History here shows budget tracking. Income added during that month increases the "savings" for that month.
+    
     for m in sorted(list(all_months), reverse=True):
-        # Exclude current and future months from historical savings calculation
-        if m >= current_month_str:
-            continue 
-        
         budget = budgets.get(m, 0)
         spent = monthly_spent.get(m, 0)
-        savings = budget - spent
-        total_savings += savings
-        history.append({"month": m, "budget": budget, "spent": spent, "savings": savings})
+        income = monthly_income.get(m, 0)
+        
+        # Monthly Savings = (Budget - Spent) + Income? 
+        # Actually Budget - Spent is what was left from the 'allowance'.
+        # Income is direct credit.
+        savings = (budget - spent) + income
+        
+        # Exclude current and future months from historical total calculation
+        if m < current_month_str:
+            total_savings += savings
+        
+        history.append({
+            "month": m, 
+            "budget": budget, 
+            "spent": spent, 
+            "income": income, 
+            "savings": savings
+        })
     
     return jsonify({
         "total_savings": round(total_savings, 2),
@@ -594,6 +613,7 @@ def chat():
     return jsonify({"response": response})
 
 
+# Trigger reload for transaction type updates
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     is_development = os.environ.get("FLASK_ENV") == "development"

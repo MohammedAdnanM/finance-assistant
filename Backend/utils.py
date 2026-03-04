@@ -22,9 +22,9 @@ def detect_anomalies(user_id=None):
     conn = get_connection()
     cur = conn.cursor()
     if user_id:
-        cur.execute("SELECT id, amount, category FROM transactions WHERE user_id=?", (user_id,))
+        cur.execute("SELECT id, amount, category FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
     else:
-        cur.execute("SELECT id, amount, category FROM transactions")
+        cur.execute("SELECT id, amount, category FROM transactions WHERE type='expense'")
     
     rows = cur.fetchall()
     if not rows:
@@ -107,6 +107,9 @@ def recommend_budget(data):
         month = dt_str[:7]
         cat = item.get('category', '')
         
+        if item.get('type') == 'income':
+            continue
+            
         if month not in monthly_data:
             monthly_data[month] = {'fixed': 0, 'variable': 0}
             
@@ -155,7 +158,7 @@ else:
 def financial_coach_reply(user_id, message):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, category, amount FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute("SELECT date, category, amount, type FROM transactions WHERE user_id=?", (user_id,))
     rows = cur.fetchall()
     
     if not rows:
@@ -166,9 +169,13 @@ def financial_coach_reply(user_id, message):
     cat_sums = {}
     unique_dates = set()
     
-    for r_date, r_cat, r_amount in rows:
-        total_spent += r_amount
-        cat_sums[r_cat] = cat_sums.get(r_cat, 0) + r_amount
+    total_income = 0
+    for r_date, r_cat, r_amount, r_type in rows:
+        if r_type == 'income':
+            total_income += r_amount
+        else:
+            total_spent += r_amount
+            cat_sums[r_cat] = cat_sums.get(r_cat, 0) + r_amount
         unique_dates.add(r_date) # Assuming r_date is 'YYYY-MM-DD' string
     
     top_cat = max(cat_sums, key=cat_sums.get) if cat_sums else "N/A"
@@ -181,9 +188,11 @@ def financial_coach_reply(user_id, message):
     
     Here is their recent financial data:
     - Total Spending: ₹{total_spent}
-    - Biggest Category: {top_cat}
+    - Total Income/Credits: ₹{total_income}
+    - Net Balance (this period): ₹{total_income - total_spent}
+    - Biggest Expense Category: {top_cat}
     - Average Daily Spending: ₹{round(avg_daily, 2)}
-    - Detailed Categories: {cat_sums}
+    - Detailed Expense Categories: {cat_sums}
     
     Instructions:
     1. Be encouraging and professional.
@@ -208,7 +217,8 @@ def financial_coach_reply(user_id, message):
             budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, this_month,)).fetchone()
             
             # Calculate current month's spending manually
-            current_spent = sum(r[2] for r in rows if r[0][:7] == this_month)
+            current_spent = sum(r[2] for r in rows if r[0][:7] == this_month and r[3] == 'expense')
+            current_income = sum(r[2] for r in rows if r[0][:7] == this_month and r[3] == 'income')
             
             if not budget_row:
                 return f"You haven't set a budget, but you've spent ₹{round(current_spent, 2)} so far."
