@@ -30,8 +30,6 @@ async function request(endpoint, method = "GET", body = null) {
             error("Session expired. Please login again.");
             localStorage.removeItem("token");
             localStorage.removeItem("user");
-            // Optional: Redirect or reload to force logout
-            setTimeout(() => window.location.reload(), 1500);
             return null;
         }
 

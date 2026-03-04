@@ -31,11 +31,11 @@ CORS(app, resources={
         "origins": [
             "https://finance-assistant-zeta.vercel.app",
             "https://finance-assistant.vercel.app",
-            "https://finance-assistant-git-c431b5-mohammed-adnans-projects-7ef5f0b2.vercel.app",
-            "https://finance-assistant-e8qg-9zb5uh9qf.vercel.app",
+            "https://finance-assistant-app.vercel.app",
             "http://localhost:5173",
             "http://127.0.0.1:5173",
             "http://localhost:3000",
+            # Add a catch-all for any user-specific vercel domain if they have one
         ],
         "allow_headers": ["Content-Type", "Authorization"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -51,6 +51,7 @@ else:
     app.config["JWT_SECRET_KEY"] = _jwt_secret
 
 jwt = JWTManager(app)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=30)
 
 init_db()
 
@@ -86,7 +87,7 @@ def register():
     
     # Generate token for immediate login
     user_id = cur.lastrowid
-    access_token = create_access_token(identity=str(user_id))
+    access_token = create_access_token(identity=user_id)
 
     return jsonify({
         "msg": "User created successfully", 
@@ -111,7 +112,7 @@ def login():
     if not user or not check_password_hash(user[1], password):
         return jsonify({"msg": "Bad email or password"}), 401
 
-    access_token = create_access_token(identity=str(user[0]))
+    access_token = create_access_token(identity=user[0])
     return jsonify({
         "access_token": access_token,
         "user": {
@@ -124,7 +125,7 @@ def login():
 @app.route("/api/user", methods=["GET"])
 @jwt_required()
 def get_user():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     conn = get_connection()
     cur = conn.cursor()
     user = cur.execute("SELECT id, email, name FROM users WHERE id=?", (user_id,)).fetchone()

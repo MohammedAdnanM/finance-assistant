@@ -1,28 +1,39 @@
 """
 db.py - Database Configuration and Initialization
 
-Process: Manages SQLite database connection and schema setup.
+Process: Manages Database connection and schema setup for both SQLite (Local) and PostgreSQL (Production).
 
 Main Functionality:
-  - get_connection(): Returns a database connection instance
-  - init_db(): Creates tables (transactions, budget, users) if they don't exist
+  - get_connection(): Returns a database connection instance based on DATABASE_URL
+  - init_db(): Creates tables if they don't exist, with syntax adjustments for Postgres compatibility
 """
 import sqlite3
 import os
+import psycopg2
+from urllib.parse import urlparse
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "finance.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 def get_connection():
-    return sqlite3.connect(DB_PATH, check_same_thread=False)
+    if DATABASE_URL:
+        # PostgreSQL (Production/Render)
+        return psycopg2.connect(DATABASE_URL)
+    else:
+        # SQLite (Development)
+        return sqlite3.connect(DB_PATH, check_same_thread=False)
 
 def init_db():
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute("""
+    # Use SERIAL for Postgres, AUTOINCREMENT for SQLite
+    id_type = "SERIAL PRIMARY KEY" if DATABASE_URL else "INTEGER PRIMARY KEY AUTOINCREMENT"
+
+    cur.execute(f"""
         CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {id_type},
             user_id INTEGER,
             date TEXT,
             category TEXT,
@@ -41,9 +52,9 @@ def init_db():
         )
     """)
 
-    cur.execute("""
+    cur.execute(f"""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {id_type},
             email TEXT UNIQUE,
             password_hash TEXT,
             name TEXT
