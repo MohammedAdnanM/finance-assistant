@@ -24,6 +24,8 @@ Stores individual financial records.
 | `date` | TEXT | Transaction date (ISO 8601: YYYY-MM-DD) |
 | `category` | TEXT | Spending category (e.g., Food, Rent) |
 | `amount` | REAL | Transaction amount |
+| `notes` | TEXT | User-defined notes/details |
+| `type` | TEXT | Type of transaction ('expense' or 'income') |
 
 ### 3. `budget`
 Stores monthly budget limits.

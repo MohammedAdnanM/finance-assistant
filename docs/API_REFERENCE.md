@@ -53,7 +53,9 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
     {
       "date": "2023-10-27",
       "category": "Food",
-      "amount": 150.00
+      "amount": 150.00,
+      "notes": "Lunch with team",
+      "type": "expense"
     }
     ```
 
