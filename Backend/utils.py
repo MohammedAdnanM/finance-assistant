@@ -11,7 +11,7 @@ Updated Functionality:
 """
 import math
 from datetime import date, datetime
-from db import get_connection
+from db import get_connection, PLACEHOLDER
 
 
 # Removed insecure global load_data function to prevent memory leakage and privacy issues.
@@ -22,7 +22,7 @@ def detect_anomalies(user_id=None):
     conn = get_connection()
     cur = conn.cursor()
     if user_id:
-        cur.execute("SELECT id, amount, category FROM transactions WHERE user_id=? AND type='expense'", (user_id,))
+        cur.execute(f"SELECT id, amount, category FROM transactions WHERE user_id={PLACEHOLDER} AND type='expense'", (user_id,))
     else:
         cur.execute("SELECT id, amount, category FROM transactions WHERE type='expense'")
     
@@ -34,7 +34,7 @@ def detect_anomalies(user_id=None):
     user_budget = 0
     if user_id:
         # Get most recent budget
-        cur.execute("SELECT amount FROM budget WHERE user_id=? ORDER BY month DESC LIMIT 1", (user_id,))
+        cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} ORDER BY month DESC LIMIT 1", (user_id,))
         b_row = cur.fetchone()
         user_budget = b_row[0] if b_row else 0
 
@@ -158,7 +158,7 @@ else:
 def financial_coach_reply(user_id, message):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT date, category, amount, type FROM transactions WHERE user_id=?", (user_id,))
+    cur.execute(f"SELECT date, category, amount, type FROM transactions WHERE user_id={PLACEHOLDER}", (user_id,))
     rows = cur.fetchall()
     
     if not rows:
@@ -214,7 +214,7 @@ def financial_coach_reply(user_id, message):
         msg = message.lower()
         if "budget" in msg or "how am i doing" in msg:
             this_month = datetime.now().strftime("%Y-%m")
-            budget_row = cur.execute("SELECT amount FROM budget WHERE user_id=? AND month=?", (user_id, this_month,)).fetchone()
+            budget_row = cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, this_month,)).fetchone()
             
             # Calculate current month's spending manually
             current_spent = sum(r[2] for r in rows if r[0][:7] == this_month and r[3] == 'expense')
