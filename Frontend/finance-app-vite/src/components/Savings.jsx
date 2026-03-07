@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { formatDate } from "../utils/formatters";
 import { ArrowTrendingUpIcon, BanknotesIcon, ChartBarIcon } from "@heroicons/react/24/outline";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
@@ -91,6 +92,7 @@ export default function Savings({ totalSavings, history }) {
                                     contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', backgroundColor: '#1f2937', color: '#fff' }}
                                     itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#10B981' }}
                                     labelStyle={{ color: '#9CA3AF' }}
+                                    labelFormatter={(label) => formatDate(label)}
                                 />
                                 <Area 
                                     type="monotone" 
@@ -118,7 +120,7 @@ export default function Savings({ totalSavings, history }) {
                         history.map((item, idx) => (
                             <div key={idx} className="p-5 bg-gray-50 dark:bg-white/5 rounded-[1.5rem] flex items-center justify-between border border-transparent hover:border-emerald-500/30 transition-all group">
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{item.month}</p>
+                                    <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{formatDate(item.month)}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                         Limit: {formatCurrency(item.budget)}
                                     </p>

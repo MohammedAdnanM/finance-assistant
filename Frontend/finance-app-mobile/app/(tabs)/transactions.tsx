@@ -7,6 +7,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '@/context/TransactionContext';
+import { formatDate } from '@/utils/formatters';
 
 import * as Haptics from 'expo-haptics';
 
@@ -65,7 +66,7 @@ export default function TransactionsScreen() {
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <ThemedText type="defaultSemiBold">{item.title}</ThemedText>
-                                    <ThemedText style={{ fontSize: 12, color: 'gray' }}>{item.date}</ThemedText>
+                                    <ThemedText style={{ fontSize: 12, color: 'gray' }}>{formatDate(item.date)}</ThemedText>
                                 </View>
                                 <ThemedText type="defaultSemiBold" style={{ color: item.type === 'expense' ? '#ff4444' : '#00aa00' }}>
                                     {item.amount < 0 ? `- ₹${Math.abs(item.amount)}` : `+ ₹${item.amount}`}

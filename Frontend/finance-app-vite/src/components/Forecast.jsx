@@ -5,7 +5,7 @@
  *  - Visualizes future spending trends via Line Chart
  *  - Displays empty state if insufficient data
  */
-import React from "react";
+import { formatDate } from "../utils/formatters";
 import {
   ResponsiveContainer,
   LineChart,
@@ -38,12 +38,13 @@ export default function Forecast({ forecast }) {
             <ResponsiveContainer width="100%" height="100%">
             <LineChart data={forecast}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-                <XAxis dataKey="date" stroke="#9CA3AF" tick={{fontSize: 12}} />
+                <XAxis dataKey="date" stroke="#9CA3AF" tick={{fontSize: 10}} tickFormatter={(val) => formatDate(val)} />
                 <YAxis stroke="#9CA3AF" tick={{fontSize: 12}} />
                 <Tooltip 
                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1f2937', color: '#fff' }}
                      itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
                      labelStyle={{ color: '#9CA3AF' }}
+                     labelFormatter={(label) => formatDate(label)}
                 />
                 <Line
                 type="monotone"

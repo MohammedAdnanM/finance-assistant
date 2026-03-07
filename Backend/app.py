@@ -419,41 +419,79 @@ def optimize_budget():
 @jwt_required()
 def necessity_score():
     try:
+        user_id = int(get_jwt_identity())
         data = request.json
-        score = 0
-        
-        if data.get("type") == "need":
-            score += 50
-        else:
-            score += 20
-        
-        freq = data.get("frequency", "low")
-        if freq == "high":
-            score += 30
-        elif freq == "medium":
-            score += 20
-        else:
-            score += 10
         
         amount = float(data.get("amount", 0) or 0)
-        budget = float(data.get("budget", 0) or 0)
+        is_need = data.get("type") == "need"
+        freq = data.get("frequency", "low")
         
-        if budget > 0:
-            ratio = amount / budget
-            if ratio < 0.05:
-                score += 40
-            elif ratio < 0.15:
-                score += 25
-            else:
-                score += 10
+        # 1. Base Score from Type & Frequency
+        score = 45 if is_need else 10
+        
+        if freq == "high":
+            score += 25
+        elif freq == "medium":
+            score += 15
         else:
-            score += 20
+            score += 5
+            
+        # 2. Financial Context Fetching
+        conn = get_connection()
+        cur = conn.cursor()
+        this_month = datetime.now().strftime("%Y-%m")
         
-        decision = "BUY" if score >= 85 else "DELAY" if score >= 45 else "AVOID"
+        # Get current budget
+        cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, this_month))
+        budget_row = cur.fetchone()
+        budget = budget_row[0] if budget_row else 0
         
+        # Get total spent this month
+        cur.execute(f"SELECT SUM(amount) FROM transactions WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER} AND type='expense'", (user_id, this_month))
+        spent_row = cur.fetchone()
+        spent = spent_row[0] if spent_row and spent_row[0] else 0
+        
+        # 3. Budget Impact Scoring
+        if budget > 0:
+            remaining = budget - spent
+            usage_ratio = spent / budget
+            
+            # Penalty for being near or over budget
+            if usage_ratio > 0.9:
+                score -= 15
+            elif usage_ratio > 1.0:
+                score -= 30
+                
+            # Impact of THIS purchase
+            if amount > remaining:
+                score -= 20 # Would push over/further over
+            elif amount < (budget * 0.02):
+                score += 15 # Negligible impact
+            elif amount < (budget * 0.1):
+                score += 5
+        else:
+            # No budget set - conservative scoring
+            score += 10
+            
+        # 4. Final Final Adjustments
+        # Needs shouldn't be too easy to block if cheap, Wants should be hard to justify if expensive
+        if not is_need and amount > 5000:
+            score -= 10
+            
+        decision = "BUY" if score >= 70 else "DELAY" if score >= 35 else "AVOID"
+        
+        # Ensure needs that are cheap are at least DELAY
+        if is_need and amount < 500 and decision == "AVOID":
+            decision = "DELAY"
+            
         return jsonify({
-            "score": min(score, 100),
-            "decision": decision
+            "score": max(0, min(score, 100)),
+            "decision": decision,
+            "context": {
+                "spent": round(spent, 2),
+                "budget": round(budget, 2),
+                "impact": round((amount / budget * 100) if budget > 0 else 0, 1)
+            }
         }), 200
     except Exception as e:
         return jsonify({"msg": f"Error: {str(e)}"}), 500
@@ -473,10 +511,11 @@ def category_efficiency():
 
     cat_stats = {}
     for r_cat, r_amount in rows:
-        if r_cat not in cat_stats:
-            cat_stats[r_cat] = [0, 0]
-        cat_stats[r_cat][0] += r_amount
-        cat_stats[r_cat][1] += 1
+        cat_name = r_cat.strip() if r_cat else "Uncategorized"
+        if cat_name not in cat_stats:
+            cat_stats[cat_name] = [0, 0]
+        cat_stats[cat_name][0] += r_amount
+        cat_stats[cat_name][1] += 1
 
     FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
     results = []

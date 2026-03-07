@@ -11,6 +11,7 @@
 import React from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { formatDate } from "../utils/formatters";
 import { ArrowDownTrayIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 export default function TransactionList({
@@ -27,7 +28,7 @@ export default function TransactionList({
     autoTable(doc, {
       startY: 30,
       head: [["Date", "Category", "Amount", "Notes", "Type"]],
-      body: transactions.map((t) => [t.date, t.category || "-", `₹${t.amount}`, t.notes || "-", t.type || "expense"]),
+      body: transactions.map((t) => [formatDate(t.date), t.category || "-", `₹${t.amount}`, t.notes || "-", t.type || "expense"]),
     });
 
     doc.save("Finance-Summary.pdf");
@@ -67,7 +68,7 @@ export default function TransactionList({
                                 <span className={`font-bold text-base ${(t.type && t.type.toLowerCase() === 'income') ? 'text-emerald-500' : 'text-rose-500'}`}>
                                     {(t.type && t.type.toLowerCase() === 'income') ? '+' : '-'} ₹ {t.amount.toLocaleString()}
                                 </span>
-                                <span className="text-xs text-gray-500 mt-0.5">{t.date}</span>
+                                <span className="text-xs text-gray-500 mt-0.5">{formatDate(t.date)}</span>
                             </div>
                             <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg text-[10px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
                                 {t.category || "Uncategorized"}
@@ -140,7 +141,7 @@ export default function TransactionList({
                   className="group hover:bg-indigo-50/30 dark:hover:bg-indigo-500/5 transition-colors border-b border-gray-50 dark:border-gray-800/50 last:border-0"
                 >
                   {/* DATE */}
-                  <td className="p-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap text-sm">{t.date}</td>
+                  <td className="p-4 text-gray-600 dark:text-gray-300 font-medium whitespace-nowrap text-sm">{formatDate(t.date)}</td>
 
                   {/* CATEGORY */}
                    <td className="p-4">

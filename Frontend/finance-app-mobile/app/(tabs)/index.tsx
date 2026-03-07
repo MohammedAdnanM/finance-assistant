@@ -8,6 +8,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTransactions } from '@/context/TransactionContext';
+import { formatDate } from '@/utils/formatters';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
@@ -54,7 +55,7 @@ export default function HomeScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <ThemedText type="defaultSemiBold">{t.title}</ThemedText>
-            <ThemedText style={{ fontSize: 12, color: 'gray' }}>{t.date}</ThemedText>
+            <ThemedText style={{ fontSize: 12, color: 'gray' }}>{formatDate(t.date)}</ThemedText>
           </View>
           <ThemedText type="defaultSemiBold" style={{ color: t.type === 'expense' ? '#ff4444' : '#00aa00' }}>
             {t.amount < 0 ? `- ₹${Math.abs(t.amount)}` : `+ ₹${t.amount}`}

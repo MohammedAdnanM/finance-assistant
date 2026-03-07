@@ -103,6 +103,24 @@ export default function SmartInsights({
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                         Score: <span className="font-mono font-bold text-gray-800 dark:text-gray-200">{necessityResult.score}</span>/100
                     </div>
+
+                    {necessityResult.context && necessityResult.context.budget > 0 && (
+                        <div className="mt-3 p-2 bg-gray-50 dark:bg-gray-800/80 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                            <p className="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1">Budget Impact</p>
+                            <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-gray-500">This Purchase:</span>
+                                <span className={`font-bold ${necessityResult.context.impact > 10 ? 'text-rose-500' : 'text-indigo-500'}`}>
+                                    {necessityResult.context.impact}%
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] mt-0.5">
+                                <span className="text-gray-500">Current Spent:</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-bold">
+                                    {Math.round((necessityResult.context.spent / necessityResult.context.budget) * 100)}%
+                                </span>
+                            </div>
+                        </div>
+                    )}
                     <button 
                         onClick={resetNecessity} 
                         className="mt-4 text-xs font-semibold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"

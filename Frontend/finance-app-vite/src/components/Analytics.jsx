@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { formatDate } from "../utils/formatters";
 import {
   ResponsiveContainer,
   LineChart,
@@ -119,6 +120,7 @@ export default function Analytics({ transactions, budget }) {
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1f2937', color: '#fff' }}
                     itemStyle={{ fontSize: '12px', fontWeight: 'bold', color: '#fff' }}
                     labelStyle={{ color: '#9CA3AF', marginBottom: '4px', fontSize: '10px' }}
+                    labelFormatter={(label) => formatDate(label)}
                 />
                 <Line type="monotone" dataKey="income" stroke="#10B981" strokeWidth={4} dot={false} animationDuration={2000} />
                 <Line type="monotone" dataKey="expense" stroke="#F43F5E" strokeWidth={4} dot={false} animationDuration={2000} />

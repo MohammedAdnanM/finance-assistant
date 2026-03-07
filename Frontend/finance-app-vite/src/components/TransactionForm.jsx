@@ -7,7 +7,7 @@
  *  - Auto-complete Categories
  *  - Form Validation
  */
-import React from "react";
+import { formatDate } from "../utils/formatters";
 
 export default function TransactionForm({
   addTransaction,
@@ -72,7 +72,9 @@ export default function TransactionForm({
             </div>
         </div>
         <div className="md:col-span-3">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1">Date</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1">
+                Date <span className="text-gray-400 font-normal ml-1">({formatDate(date)})</span>
+            </label>
             <input
             type="date"
             value={date}

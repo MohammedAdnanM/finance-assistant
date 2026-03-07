@@ -199,7 +199,7 @@ def financial_coach_reply(user_id, message):
     2. Use the data provided to give specific advice.
     3. If they ask about a specific category or budget, prioritize that data.
     4. Keep the response concise but insightful (max 3-4 sentences).
-    5. Always format currency as ₹.
+    5. Always format currency as ₹ and dates as dd-mm-yy.
     """
 
     if model:
