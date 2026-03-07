@@ -404,7 +404,7 @@ export default function Dashboard({ logoutHandler, user }) {
                 />
                 
                 <div className="hidden md:block space-y-6">
-                    <Analytics transactions={transactions} budget={budget} />
+                    <Analytics transactions={transactions} budget={budget} savingsData={savingsData} />
                     <div className="hidden xl:block">
                         <Forecast forecast={forecast} />
                     </div>
@@ -416,8 +416,8 @@ export default function Dashboard({ logoutHandler, user }) {
                 <SmartInsights 
                     optimizations={optimizations}
                     pulseMetrics={{
-                        ratio: totalSpent > 0 ? (totalIncome / totalSpent).toFixed(2) : (totalIncome > 0 ? "∞" : "0.00"),
-                        netFlow: totalIncome - totalSpent
+                        ratio: spent > 0 ? (income / spent).toFixed(2) : (income > 0 ? "∞" : "0.00"),
+                        netFlow: income - spent
                     }}
                     necessityResult={necessityResult}
                     checkNecessity={checkNecessity}
