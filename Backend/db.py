@@ -74,5 +74,15 @@ def init_db():
         )
     """)
 
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS chat_history (
+            id {id_type},
+            user_id INTEGER,
+            role TEXT,
+            content TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     conn.close()

@@ -22,15 +22,40 @@ import { api } from "../utils/api";
 export default function ChatCoach() {
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState("");
-    const [messages, setMessages] = useState([
-        { 
-            role: "assistant", 
-            content: "Hi! I'm your AI Financial Coach. Ask me anything about your spending, like 'How much did I spend on Food?' or 'Am I over budget?'",
-            time: new Date()
-        }
-    ]);
+    const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const scrollRef = useRef(null);
+
+    async function fetchHistory() {
+        try {
+            const res = await api.get("/chat/history");
+            if (res && res.ok) {
+                const data = await res.json();
+                if (data.length > 0) {
+                    setMessages(data.map(m => ({
+                        ...m,
+                        time: new Date(m.time)
+                    })));
+                } else {
+                    setMessages([
+                        { 
+                            role: "assistant", 
+                            content: "Hi! I'm your AI Financial Coach. Ask me anything about your spending, like 'How much did I spend on Food?' or 'Am I over budget?'",
+                            time: new Date()
+                        }
+                    ]);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch history:", err);
+        }
+    }
+
+    useEffect(() => {
+        if (isOpen && messages.length === 0) {
+            fetchHistory();
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (scrollRef.current) {

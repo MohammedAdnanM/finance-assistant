@@ -181,10 +181,24 @@ def financial_coach_reply(user_id, message):
     top_cat = max(cat_sums, key=cat_sums.get) if cat_sums else "N/A"
     avg_daily = total_spent / len(unique_dates) if unique_dates else 0
     
-    # Prepare Context for Gemini
+    # 1. Fetch Chat History (last 10 messages for context)
+    cur.execute(f"SELECT role, content FROM chat_history WHERE user_id={PLACEHOLDER} ORDER BY timestamp DESC LIMIT 10", (user_id,))
+    history_rows = cur.fetchall()
+    
+    chat_context = []
+    # Reverse history rows because we need ASC order but fetched DESC to get latest
+    for h_role, h_content in reversed(history_rows):
+        chat_context.append(f"{h_role.upper()}: {h_content}")
+    
+    history_snippet = "\n".join(chat_context)
+
+    # 2. Prepare Context for Gemini
     context = f"""
     You are a professional Financial Coach. 
     The user is asking: "{message}"
+    
+    Conversation History:
+    {history_snippet}
     
     Here is their recent financial data:
     - Total Spending: ₹{total_spent}

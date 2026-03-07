@@ -113,6 +113,12 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 *   Response: `{"score": 85, "decision": "BUY", "context": {"spent": 450, "budget": 1000, "impact": 10.0}}`
 *   Description: Purchase decision ("BUY", "DELAY", "AVOID") based on real-time budget health and impact analysis.
 
+### PDF Statement Export
+*   Endpoint: `GET /export-pdf`
+*   Query Params: `?month=YYYY-MM` (optional, defaults to current month)
+*   Response: `PDF File`
+*   Description: Generates a professional monthly financial statement including summary metrics and a detailed transaction table.
+
 ---
 
 ## AI Assistant

@@ -618,14 +618,112 @@ def get_savings():
         "history": history
     })
 
+from fpdf import FPDF
+import io
+
+@app.route("/export-pdf", methods=["GET"])
+@jwt_required()
+def export_pdf():
+    user_id = int(get_jwt_identity())
+    month = request.args.get("month", datetime.now().strftime("%Y-%m"))
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # 1. Fetch Transactions
+    cur.execute(f"SELECT date, category, amount, notes, type FROM transactions WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER}", (user_id, month))
+    rows = cur.fetchall()
+    
+    # 2. Generate PDF using fpdf2
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(0, 10, f"Monthly Financial Statement - {month}", ln=True, align="C")
+    pdf.ln(10)
+    
+    # Summary Stats
+    total_spent = sum(r[2] for r in rows if r[4] == 'expense')
+    total_income = sum(r[2] for r in rows if r[4] == 'income')
+    
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.cell(0, 10, f"Total Income: INR {total_income:,.2f}", ln=True)
+    pdf.cell(0, 10, f"Total Spent: INR {total_spent:,.2f}", ln=True)
+    pdf.cell(0, 10, f"Net Flow: INR {total_income - total_spent:,.2f}", ln=True)
+    pdf.ln(10)
+    
+    # Table Header
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(30, 10, "Date", border=1, fill=True)
+    pdf.cell(40, 10, "Category", border=1, fill=True)
+    pdf.cell(30, 10, "Amount", border=1, fill=True)
+    pdf.cell(20, 10, "Type", border=1, fill=True)
+    pdf.cell(70, 10, "Notes", border=1, fill=True)
+    pdf.ln()
+    
+    # Table Rows
+    pdf.set_font("Helvetica", "", 9)
+    for r_date, r_cat, r_amt, r_notes, r_type in rows:
+        # Format date for report: dd-mm-yy
+        formatted_date = r_date
+        try:
+            d_obj = datetime.strptime(r_date, "%Y-%m-%d")
+            formatted_date = d_obj.strftime("%d-%m-%y")
+        except:
+            pass
+            
+        pdf.cell(30, 8, formatted_date, border=1)
+        pdf.cell(40, 8, str(r_cat or "-"), border=1)
+        pdf.cell(30, 8, f"{r_amt:,.2f}", border=1)
+        pdf.cell(20, 8, str(r_type).upper(), border=1)
+        pdf.cell(70, 8, str(r_notes or "-")[:40], border=1) # Truncate long notes
+        pdf.ln()
+        
+    # Return as safe stream
+    from flask import send_file
+    output = io.BytesIO()
+    output.write(pdf.output())
+    output.seek(0)
+    
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"Statement_{month}.pdf",
+        mimetype="application/pdf"
+    )
+
+@app.route("/chat/history", methods=["GET"])
+@jwt_required()
+def chat_history():
+    user_id = int(get_jwt_identity())
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"SELECT role, content, timestamp FROM chat_history WHERE user_id={PLACEHOLDER} ORDER BY timestamp ASC", (user_id,))
+    rows = cur.fetchall()
+    history = [{"role": r[0], "content": r[1], "time": r[2]} for r in rows]
+    return jsonify(history)
+
 @app.route("/chat", methods=["POST"])
 @jwt_required()
 def chat():
     user_id = int(get_jwt_identity())
     data = request.json
     message = data.get("message", "")
-    response = financial_coach_reply(user_id, message)
-    return jsonify({"response": response})
+    
+    conn = get_connection()
+    cur = conn.cursor()
+    
+    # 1. Save User Message
+    cur.execute(f"INSERT INTO chat_history (user_id, role, content) VALUES ({PLACEHOLDER}, 'user', {PLACEHOLDER})", (user_id, message))
+    
+    # 2. Get AI Response
+    response_text = financial_coach_reply(user_id, message)
+    
+    # 3. Save AI Response
+    cur.execute(f"INSERT INTO chat_history (user_id, role, content) VALUES ({PLACEHOLDER}, 'assistant', {PLACEHOLDER})", (user_id, response_text))
+    
+    conn.commit()
+    return jsonify({"response": response_text})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

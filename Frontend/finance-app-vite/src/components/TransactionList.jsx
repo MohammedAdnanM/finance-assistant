@@ -12,7 +12,7 @@ import React from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatDate } from "../utils/formatters";
-import { ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, ArrowPathIcon, SparklesIcon } from "@heroicons/react/24/outline";
 
 export default function TransactionList({
   transactions,
@@ -44,16 +44,45 @@ export default function TransactionList({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
         
-        <button
-            onClick={downloadPDF}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg
-            bg-gray-100 hover:bg-gray-200 text-gray-700
-            dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300
-            transition-all text-sm font-medium"
-        >
-            <ArrowDownTrayIcon className="h-4 w-4" />
-            <span>Export PDF</span>
-        </button>
+        <div className="flex items-center gap-2">
+            <button
+                onClick={downloadPDF}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-gray-100 hover:bg-gray-200 text-gray-700
+                dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300
+                transition-all text-xs font-medium"
+                title="Instant client-side export"
+            >
+                <ArrowDownTrayIcon className="h-4 w-4" />
+                <span>PDF (Fast)</span>
+            </button>
+            <button
+                onClick={async () => {
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(`${import.meta.env.VITE_API_BASE || 'http://127.0.0.1:5000'}/export-pdf`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const blob = await res.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "Bank_Statement.pdf";
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    }
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-indigo-600 hover:bg-indigo-700 text-white
+                shadow-lg shadow-indigo-500/20
+                transition-all text-xs font-bold uppercase tracking-wider"
+                title="Professional API-generated statement"
+            >
+                <SparklesIcon className="h-4 w-4" />
+                <span>Statement</span>
+            </button>
+        </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 overflow-hidden">
