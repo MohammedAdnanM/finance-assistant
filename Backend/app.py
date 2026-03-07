@@ -95,7 +95,7 @@ def register():
         else:
             user_id = cur.lastrowid
             
-        access_token = create_access_token(identity=user_id)
+        access_token = create_access_token(identity=str(user_id))
 
         return jsonify({
             "msg": "User created successfully", 
@@ -124,7 +124,7 @@ def login():
         if not user or not check_password_hash(user[1], password):
             return jsonify({"msg": "Bad email or password"}), 401
 
-        access_token = create_access_token(identity=user[0])
+        access_token = create_access_token(identity=str(user[0]))
         return jsonify({
             "access_token": access_token,
             "user": {
