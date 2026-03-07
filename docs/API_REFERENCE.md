@@ -51,13 +51,14 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 *   Body:
     ```json
     {
-      "date": "2023-10-27",
+      "date": "2023-10-27", // ISO 8601 (YYYY-MM-DD) for storage
       "category": "Food",
       "amount": 150.00,
       "notes": "Lunch with team",
       "type": "expense"
     }
     ```
+    *Note: Frontend converts all user-facing dates to `dd-mm-yy`.*
 
 ### Update Transaction
 *   Endpoint: `PUT /update/<id>`
@@ -112,10 +113,10 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 *   Description: Rates spending efficiency per category based on average transaction size. Labels fixed costs as "Fixed".
 *   Response: `[{"category": "Rent", "efficiency": "Fixed"}, {"category": "Food", "efficiency": "High"}]`
 
-### Necessity Score
 *   Endpoint: `POST /necessity-score`
-*   Body: `{"type": "need", "frequency": "high", "amount": 100, "budget": 1000}`
-*   Response: Purchase decision ("BUY", "DELAY", "AVOID") and score.
+*   Body: `{"type": "need", "frequency": "high", "amount": 100}`
+*   Response: `{"score": 85, "decision": "BUY", "context": {"spent": 450, "budget": 1000, "impact": 10.0}}`
+*   Description: Purchase decision ("BUY", "DELAY", "AVOID") based on real-time budget health and impact analysis.
 
 ---
 

@@ -40,14 +40,16 @@ This document outlines the Machine Learning algorithms, Statistical methods, and
     *   **Fixed/Variable Split:** Prioritizes covering 100% of fixed costs (Bills, Rent, Utilities) while adding a 15% safety buffer to variable spending.
     *   **New User Buffer:** If a user has very little history, the system defaults to a 40% buffer over fixed costs to allow for initial variable spending discovery.
 
-## 6. Necessity Scoring (Rule-Based Classifier)
-*   Method: Weighted Scoring System (0-100)
+## 6. Necessity Scoring (Financial Impact Classifier)
+*   Method: Context-Aware Dynamic Scoring (0-100)
 *   File: `Backend/app.py` (`necessity_score`)
 *   Purpose:
-    Classifies a potential purchase as BUY, DELAY, or AVOID. It assigns scores based on:
-    *   **Type (Weight: 50):** Needs are prioritized over Wants.
-    *   **Frequency (Weight: 30):** High-frequency items score higher.
-    *   **Budget Impact (Weight: 40):** Items costing < 5% of the monthly budget get maximum points.
+    Classifies a potential purchase as BUY, DELAY, or AVOID using real-time financial health.
+    *   **Need vs Want (Weight: 45):** Base score is significantly higher for needs.
+    *   **Frequency (Weight: 25):** Recurrent essentials score higher than one-off wants.
+    *   **Real-Time Budget Utilization:** Integrates current month's spending and budget limit.
+    *   **Dynamic Penalty:** Deducts up to 30 points if the user is near (>90%) or over budget. 
+    *   **Overdraft Analysis:** Deducts points if the single purchase would push the user over their remaining monthly budget.
 
 ## 7. Predictive Spending (Velocity-Based)
 *   Method: Dampened Daily Velocity
