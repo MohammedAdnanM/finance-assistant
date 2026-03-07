@@ -7,6 +7,7 @@
  */
 import React from "react";
 import {
+  ArrowPathIcon,
   HomeIcon,
   ReceiptPercentIcon,
   ChartBarIcon,
@@ -17,6 +18,7 @@ import {
 export default function Sidebar({ activeTab, setActiveTab, healthScore }) {
   const menuItems = [
     { id: 'overview', icon: HomeIcon, label: "Overview" },
+    { id: 'recurring', icon: ArrowPathIcon, label: "Recurring" },
     { id: 'savings', icon: BanknotesIcon, label: "Savings" },
     { id: 'history', icon: ReceiptPercentIcon, label: "History" },
     { id: 'analytics', icon: ChartBarIcon, label: "Analytics" },

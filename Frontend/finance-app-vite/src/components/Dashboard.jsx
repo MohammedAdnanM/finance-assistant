@@ -24,6 +24,7 @@ import Forecast from "./Forecast";
 import ChatCoach from "./ChatCoach";
 import Savings from "./Savings";
 import MobileNav from "./MobileNav";
+import RecurringTransactions from "./RecurringTransactions";
 
 // Utils
 import { success, error } from "../utils/toast";
@@ -274,6 +275,22 @@ export default function Dashboard({ logoutHandler, user }) {
     }
   }
 
+  async function addRecurringFromTransaction(t) {
+    const day = parseInt(t.date.split("-")[2]);
+    const res = await api.post("/recurring", {
+      amount: t.amount,
+      category: t.category,
+      day_of_month: day,
+      notes: t.notes,
+      type: t.type || "expense"
+    });
+    if (res && res.ok) {
+      success(`Converted ${t.category} to a monthly recurring item!`);
+    } else {
+      error("Failed to convert to recurring");
+    }
+  }
+
   /* ---------------- HELPERS ---------------- */
   function editTransaction(t) {
     setEditingId(t.id);
@@ -421,6 +438,7 @@ export default function Dashboard({ logoutHandler, user }) {
                     anomalies={anomalies}
                     editTransaction={editTransaction}
                     deleteTransaction={deleteTransaction}
+                    addRecurringFromTransaction={addRecurringFromTransaction}
                 />
             </div>
         </div>
@@ -431,6 +449,12 @@ export default function Dashboard({ logoutHandler, user }) {
                <Savings totalSavings={savingsData.total_savings} history={savingsData.history} />
            </div>
         )}
+
+        {activeTab === 'recurring' && (
+           <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
+               <RecurringTransactions categoriesList={categoriesList} />
+           </div>
+        )}
         
         {activeTab === 'history' && (
             <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto">
@@ -439,6 +463,7 @@ export default function Dashboard({ logoutHandler, user }) {
                     anomalies={anomalies}
                     editTransaction={editTransaction}
                     deleteTransaction={deleteTransaction}
+                    addRecurringFromTransaction={addRecurringFromTransaction}
                 />
             </div>
         )}

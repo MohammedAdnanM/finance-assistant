@@ -127,3 +127,19 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 *   Body: `{"message": "How am I doing this month?"}`
 *   Response: AI-generated financial advice using Gemini.
 
+---
+
+## Recurring Transactions (Subscriptions)
+
+### Get Recurring Templates
+*   Endpoint: `GET /recurring`
+*   Response: `[{"id": 1, "amount": 2000, "category": "Rent", "day_of_month": 5, "type": "expense", "notes": ""}]`
+
+### Add Recurring Template
+*   Endpoint: `POST /recurring`
+*   Body: `{"amount": 500, "category": "Netflix", "day_of_month": 15, "type": "expense", "notes": "Monthly billing"}`
+*   Description: Creates a template. These are automatically converted into real transactions when a user fetches transactions for a new month.
+
+### Delete Recurring Template
+*   Endpoint: `DELETE /recurring/<id>`
+

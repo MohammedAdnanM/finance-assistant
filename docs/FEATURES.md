@@ -23,6 +23,11 @@ The Finance Assistant is packed with features designed to take you from simple e
 *   Lifetime Savings: View your total accumulated savings (Budget - Spent) across all previous months.
 *   Monthly History: A break-down of savings performance for every historical month.
 
+### 5. Recurring Transactions (Automation)
+*   **Monthly Templates**: Mark transactions as recurring (Rent, Subscriptions) to automate your tracking.
+*   **Auto-Generation**: The system automatically adds recurring items to your transaction list every month based on your set "Day of Month".
+*   **One-Click Transition**: Convert any existing transaction into a monthly recurring subscription with a single click in the history view.
+
 ---
 
 ## 🧠 AI & Intelligent Analytics

@@ -62,5 +62,17 @@ def init_db():
         )
     """)
 
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS recurring_transactions (
+            id {id_type},
+            user_id INTEGER,
+            amount REAL,
+            category TEXT,
+            notes TEXT,
+            type TEXT DEFAULT 'expense',
+            day_of_month INTEGER
+        )
+    """)
+
     conn.commit()
     conn.close()

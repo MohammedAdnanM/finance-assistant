@@ -227,6 +227,34 @@ def get_transactions():
     cur = conn.cursor()
 
     if month:
+        # Process recurring transactions for THIS month if they don't exist
+        # We check if we already processed recurring for this month by looking at notes for 'Recurring Subscription'
+        cur.execute(f"SELECT id FROM recurring_transactions WHERE user_id={PLACEHOLDER}", (user_id,))
+        recurring_templates = cur.fetchall()
+        
+        for rt in recurring_templates:
+            # Check if this specific recurring item (by category and day) already exists for this month
+            # We look for the note ' [Recurring]' at the end
+            cur.execute(f"SELECT id FROM recurring_transactions WHERE id={PLACEHOLDER}", (rt[0],))
+            # Just get the details
+            cur.execute(f"SELECT amount, category, notes, type, day_of_month FROM recurring_transactions WHERE id={PLACEHOLDER}", (rt[0],))
+            rt_data = cur.fetchone()
+            if rt_data:
+                amt, cat, nts, typ, day = rt_data
+                day_str = str(day).zfill(2)
+                check_date = f"{month}-{day_str}"
+                check_notes = f"{nts} [Recurring]".strip()
+                
+                cur.execute(f"SELECT id FROM transactions WHERE user_id={PLACEHOLDER} AND date={PLACEHOLDER} AND category={PLACEHOLDER} AND notes={PLACEHOLDER}", 
+                           (user_id, check_date, cat, check_notes))
+                if not cur.fetchone():
+                    # Add it
+                    cur.execute(f"""
+                        INSERT INTO transactions (user_id, date, category, amount, notes, type)
+                        VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})
+                    """, (user_id, check_date, cat, amt, check_notes, typ))
+                    conn.commit()
+
         cur.execute(f"""
             SELECT id, date, category, amount, notes, type
             FROM transactions
@@ -247,6 +275,43 @@ def get_transactions():
             for r in rows
         ]
     })
+
+@app.route("/recurring", methods=["GET"])
+@jwt_required()
+def get_recurring():
+    user_id = int(get_jwt_identity())
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"SELECT id, amount, category, notes, type, day_of_month FROM recurring_transactions WHERE user_id={PLACEHOLDER}", (user_id,))
+    rows = cur.fetchall()
+    return jsonify([
+        {"id": r[0], "amount": r[1], "category": r[2], "notes": r[3], "type": r[4], "day_of_month": r[5]}
+        for r in rows
+    ])
+
+@app.route("/recurring", methods=["POST"])
+@jwt_required()
+def add_recurring():
+    user_id = int(get_jwt_identity())
+    data = request.json
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"""
+        INSERT INTO recurring_transactions (user_id, amount, category, notes, type, day_of_month)
+        VALUES ({PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER}, {PLACEHOLDER})
+    """, (user_id, data["amount"], data.get("category", ""), data.get("notes", ""), data.get("type", "expense"), int(data.get("day_of_month", 1))))
+    conn.commit()
+    return jsonify({"status": "added"}), 201
+
+@app.route("/recurring/<int:id>", methods=["DELETE"])
+@jwt_required()
+def delete_recurring(id):
+    user_id = int(get_jwt_identity())
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"DELETE FROM recurring_transactions WHERE id={PLACEHOLDER} AND user_id={PLACEHOLDER}", (id, user_id))
+    conn.commit()
+    return jsonify({"status": "deleted"}), 200
 
 @app.route("/predict")
 @jwt_required()

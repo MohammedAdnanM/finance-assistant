@@ -12,13 +12,14 @@ import React from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatDate } from "../utils/formatters";
-import { ArrowDownTrayIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 export default function TransactionList({
   transactions,
   anomalies,
   editTransaction,
   deleteTransaction,
+  addRecurringFromTransaction,
 }) {
 
   function downloadPDF() {
@@ -89,6 +90,13 @@ export default function TransactionList({
                         )}
 
                         <div className="flex gap-2 mt-1 justify-end">
+                            <button
+                                onClick={() => addRecurringFromTransaction(t)}
+                                className="flex-1 py-1.5 px-3 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2"
+                                title="Make Recurring"
+                            >
+                                <ArrowPathIcon className="h-3 w-3" /> Auto
+                            </button>
                             <button
                                 onClick={() => editTransaction(t)}
                                 className="flex-1 py-1.5 px-3 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2"
@@ -178,6 +186,14 @@ export default function TransactionList({
                   {/* ACTION */}
                   <td className="p-4 text-center">
                     <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                        onClick={() => addRecurringFromTransaction(t)}
+                        className="p-2 text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                        title="Make Recurring"
+                        >
+                        <ArrowPathIcon className="h-5 w-5" />
+                        </button>
+                        
                         <button
                         onClick={() => editTransaction(t)}
                         className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
