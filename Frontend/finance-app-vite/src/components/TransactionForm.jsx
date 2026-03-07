@@ -7,6 +7,7 @@
  *  - Auto-complete Categories
  *  - Form Validation
  */
+import React, { useRef } from "react";
 import { formatDate } from "../utils/formatters";
 
 export default function TransactionForm({
@@ -28,6 +29,8 @@ export default function TransactionForm({
   editingId,
   cancelEdit,
 }) {
+  const dateInputRef = useRef(null);
+
   return (
     <section
       className="bg-white border border-gray-200
@@ -73,19 +76,34 @@ export default function TransactionForm({
         </div>
         <div className="md:col-span-3">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 ml-1">
-                Date <span className="text-gray-400 font-normal ml-1">({formatDate(date)})</span>
+                Date
             </label>
-            <input
-            type="date"
-            value={date}
-            min={`${month}-01`}
-            max={`${month}-31`}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full p-3 rounded-xl
-                    bg-gray-50 text-black border border-gray-200
-                    dark:bg-gray-800 dark:text-white dark:border-gray-700
-                    focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-            />
+            <div className="relative group cursor-pointer" onClick={() => dateInputRef.current?.showPicker()}>
+                <input
+                    type="text"
+                    readOnly
+                    value={formatDate(date)}
+                    className="w-full p-3 rounded-xl
+                            bg-gray-50 text-indigo-500 border border-gray-200
+                            dark:bg-gray-800 dark:border-gray-700
+                            font-black uppercase tracking-widest text-sm
+                            group-hover:border-indigo-500/50 transition-all cursor-pointer"
+                />
+                <input
+                    type="date"
+                    ref={dateInputRef}
+                    value={date}
+                    min={`${month}-01`}
+                    max={`${month}-31`}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="absolute opacity-0 pointer-events-none"
+                />
+                <div className="absolute right-3 top-3.5 text-gray-400 group-hover:text-indigo-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+            </div>
         </div>
 
         <div className="relative md:col-span-4">

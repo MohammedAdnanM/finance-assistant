@@ -10,7 +10,7 @@ import React from "react";
 
 export default function SmartInsights({
   optimizations,
-  efficiency,
+  pulseMetrics,
   necessityResult,
   checkNecessity,
   resetNecessity,
@@ -34,15 +34,15 @@ export default function SmartInsights({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Budget Optimization */}
         <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow flex flex-col min-w-0">
-          <h4 className="text-sm font-bold text-purple-600 dark:text-purple-400 mb-4 flex items-center gap-2">
-            <span className="text-lg">🚨</span>
+          <h4 className="text-sm font-bold text-rose-600 dark:text-rose-400 mb-4 flex items-center gap-2">
+            <span className="text-lg">📢</span>
             <span className="truncate">Budget Alerts</span>
           </h4>
           <div className="flex-1 space-y-3">
              {optimizations.length === 0 ? (
-                <div className="flex items-center gap-2 text-green-500 bg-green-50 dark:bg-green-900/10 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-emerald-500 bg-emerald-50 dark:bg-emerald-900/10 p-3 rounded-lg">
                     <span>✅</span>
-                    <p className="text-sm font-medium">No overspending detected.</p>
+                    <p className="text-sm font-medium">On track this month</p>
                 </div>
             ) : (
                 optimizations.map((o, i) => (
@@ -57,31 +57,25 @@ export default function SmartInsights({
           </div>
         </div>
 
-        {/* Category Efficiency */}
-        <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow flex flex-col min-w-0 h-fit">
-          <h4 className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-4 flex items-center gap-2 flex-nowrap overflow-hidden">
-             <span className="text-lg shrink-0">📊</span>
-             <span className="truncate">Category Efficiency</span>
+        {/* Financial Pulse */}
+        <div className="bg-white dark:bg-gray-800/50 p-5 rounded-xl border border-gray-100 dark:border-gray-700/50 hover:shadow-md transition-shadow flex flex-col min-w-0">
+          <h4 className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-4 flex items-center gap-2">
+             <span className="text-lg shrink-0">📉</span>
+             <span className="truncate">Financial Pulse</span>
           </h4>
-          <div className="overflow-y-auto pr-1 custom-scrollbar space-y-1" style={{ maxHeight: "400px" }}>
-            {efficiency.length > 0 ? (
-                efficiency.map((e, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2 p-3 rounded-xl bg-gray-50/50 dark:bg-gray-800/40 border border-transparent hover:border-teal-500/30 transition-all group">
-                        <span className="text-gray-700 dark:text-gray-300 text-sm font-semibold truncate">{e.category}</span>
-                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shrink-0 text-center min-w-[65px]
-                            ${e.efficiency === "High" ? "bg-green-500/20 text-green-600 dark:text-green-400" : 
-                              e.efficiency === "Medium" ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" :
-                              "bg-red-500/20 text-red-600 dark:text-red-400"}`}>
-                            {e.efficiency}
-                        </span>
-                    </div>
-                ))
-            ) : (
-                <div className="flex flex-col items-center justify-center h-full py-8 text-center text-gray-400">
-                    <span className="text-xl mb-2 opacity-30">�</span>
-                    <p className="text-xs italic">No data available</p>
-                </div>
-            )}
+          <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-gray-400">I:E Ratio</span>
+                  <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 font-mono">
+                      {pulseMetrics.ratio}x
+                  </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3">
+                  <span className="text-[10px] font-black uppercase text-gray-400">Net Flow</span>
+                  <span className={`text-[12px] font-black ${pulseMetrics.netFlow >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {pulseMetrics.netFlow >= 0 ? '+' : ''}₹{Math.abs(pulseMetrics.netFlow).toLocaleString()}
+                  </span>
+              </div>
           </div>
         </div>
 

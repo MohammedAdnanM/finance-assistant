@@ -73,7 +73,6 @@ export default function Dashboard({ logoutHandler, user }) {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [optimizations, setOptimizations] = useState([]);
-  const [efficiency, setEfficiency] = useState([]);
   const [necessityResult, setNecessityResult] = useState(null);
   const [necessityType, setNecessityType] = useState("want");
   const [necessityFrequency, setNecessityFrequency] = useState("low");
@@ -86,10 +85,6 @@ export default function Dashboard({ logoutHandler, user }) {
     if (res && res.ok) setOptimizations(await res.json());
   }
 
-  async function fetchEfficiency() {
-    const res = await api.get(`/category-efficiency?month=${month}`);
-    if (res && res.ok) setEfficiency(await res.json());
-  }
 
   async function checkNecessity() {
     if (!amount) {
@@ -162,7 +157,6 @@ export default function Dashboard({ logoutHandler, user }) {
         getAnomalies();
         getPrediction();
         fetchOptimization();
-        fetchEfficiency();
         getSavings();
     } else {
         error("Operation failed");
@@ -320,7 +314,6 @@ export default function Dashboard({ logoutHandler, user }) {
       getRecommendedBudget();
       getForecast();
       fetchOptimization();
-      fetchEfficiency();
       getSavings();
       setDate(`${month}-01`);
   }, [month]);
@@ -422,7 +415,10 @@ export default function Dashboard({ logoutHandler, user }) {
             <div className="xl:col-span-7 space-y-6">
                 <SmartInsights 
                     optimizations={optimizations}
-                    efficiency={efficiency}
+                    pulseMetrics={{
+                        ratio: totalSpent > 0 ? (totalIncome / totalSpent).toFixed(2) : (totalIncome > 0 ? "∞" : "0.00"),
+                        netFlow: totalIncome - totalSpent
+                    }}
                     necessityResult={necessityResult}
                     checkNecessity={checkNecessity}
                     resetNecessity={() => setNecessityResult(null)}
@@ -470,7 +466,7 @@ export default function Dashboard({ logoutHandler, user }) {
 
         {activeTab === 'analytics' && (
             <div className="p-4 md:p-8 pb-32 max-w-7xl mx-auto space-y-8">
-                <Analytics transactions={transactions} budget={budget} />
+                <Analytics transactions={transactions} budget={budget} savingsData={savingsData} />
                 <Forecast forecast={forecast} />
             </div>
         )}

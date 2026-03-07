@@ -19,9 +19,11 @@ The Finance Assistant is packed with features designed to take you from simple e
 *   One-Click Auto-Set: Apply the AI's recommended budget with a single click.
 *   Live Tracking: See how much of your budget you've used in real-time on the dashboard.
 
-### 4. Savings Tracking
-*   Lifetime Savings: View your total accumulated savings (Budget - Spent) across all previous months.
-*   Monthly History: A break-down of savings performance for every historical month.
+### 4. Advanced Analytics & Net Worth
+*   **Income vs Expense Ratio**: Track your financial efficiency with real-time I:E ratios.
+*   **Net Worth Trend**: Visualize your cumulative wealth growth with a dedicated asset trajectory chart.
+*   **Income Breakdown**: See exactly where your money comes from with income stream categorization.
+*   **Savings Rate %**: Instant visibility into your monthly savings performance (Net / Income).
 
 ### 5. Recurring Transactions (Automation)
 *   **Monthly Templates**: Mark transactions as recurring (Rent, Subscriptions) to automate your tracking.
@@ -32,40 +34,41 @@ The Finance Assistant is packed with features designed to take you from simple e
 
 ## 🧠 AI & Intelligent Analytics
 
-### 4. AI Financial Coach (Gemini Powered)
+### 6. AI Financial Coach (Gemini Powered)
 *   Chat Interface: Ask questions like "How can I save more?" or "Am I spending too much on food?".
 *   Context-Aware: The AI analyzes your specific transaction history to give personalized advice using Google Gemini.
 
-### 5. Smart Forecasting
+### 7. Smart Forecasting
 *   Future Projections: Predict your spending for the next 30 days based on your daily spending habits.
 *   Trend Analysis: Uses linear regression and heuristic models to anticipate future costs.
 
-### 6. Anomaly Detection
+### 8. Anomaly Detection
 *   Outlier Alerts: Automatically flags transactions that are unusually high compared to your typical spending in that category.
 *   Safety Net: Helps you identify accidental large purchases or potential errors.
 
-### 7. Necessity Scoring ("Buy or Wait?")
+### 9. Necessity Scoring ("Buy or Wait?")
 *   Purchase Decision Helper: Input details about a potential purchase (Cost, Type, Frequency).
 *   Score & Verdict: The system scores the item (0-100) and recommends whether you should BUY, DELAY, or AVOID it.
 
-### 8. Budget Optimization
+### 10. Budget Optimization
 *   Category Analysis: Identifies categories where you are overspending compared to your historical average.
 *   Actionable Insights: Provides specific warnings like "Dining out is 20% higher than usual this month."
 
-### 9. Category Efficiency
-*   Efficiency Ratings: Rates your spending efficiency in each category (High, Medium, Low) based on cost-per-transaction analysis.
+### 11. Financial Pulse Insights
+*   **Real-Time Metrics**: Instant visibility into your Income-to-Expense ratio and Monthly Net Flow directly on the main dashboard.
+*   **Health Status**: Color-coded badges that indicate whether your savings performance is healthy or needs attention.
 
 ---
 
 ## 📊 User Experience (Frontend)
 
-### 10. Interactive Dashboard
+### 12. Interactive Dashboard
 *   Cinematic Login Page: Premium high-definition Earth-themed background with glassmorphic cards and smooth transitions.
 *   Interactive Charts: Dynamic Line (Trend) and Bar (Category) charts for spending visualization.
 *   At-a-Glance Stats: Quick summary cards for Budget, Forecast, and Anomalies.
 *   Status Badges: Instant "On Track" or "Alert" badges based on predictive analysis.
 
-### 11. Efficiency & Access
+### 13. Efficiency & Access
 *   Keyboard Submission: Support for the Enter key to login/register instantly without using a mouse.
 *   Adaptive Sidebar: A smart sidebar for desktop that collapses into a bottom navigation bar on mobile devices.
 *   Financial Health Widget: Real-time gamified score (0-100) visible in the sidebar to track budget adherence.

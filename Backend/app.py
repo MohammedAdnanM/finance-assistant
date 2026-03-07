@@ -561,52 +561,6 @@ def necessity_score():
     except Exception as e:
         return jsonify({"msg": f"Error: {str(e)}"}), 500
         
-@app.route("/category-efficiency", methods=["GET"])
-@jwt_required()
-def category_efficiency():
-    user_id = int(get_jwt_identity())
-    month = request.args.get("month")
-    conn = get_connection()
-    cur = conn.cursor()
-    if month:
-        cur.execute(f"SELECT category, amount FROM transactions WHERE user_id={PLACEHOLDER} AND substr(date,1,7)={PLACEHOLDER} AND type='expense'", (user_id, month))
-    else:
-        cur.execute(f"SELECT category, amount FROM transactions WHERE user_id={PLACEHOLDER} AND type='expense'", (user_id,))
-    rows = cur.fetchall()
-
-    cat_stats = {}
-    for r_cat, r_amount in rows:
-        cat_name = r_cat.strip() if r_cat else "Uncategorized"
-        if cat_name not in cat_stats:
-            cat_stats[cat_name] = [0, 0]
-        cat_stats[cat_name][0] += r_amount
-        cat_stats[cat_name][1] += 1
-
-    FIXED_CATS = ["Rent", "Bills", "Education", "Insurance", "Utilities"]
-    results = []
-    for cat, stats in cat_stats.items():
-        total, count = stats[0], stats[1]
-
-        if cat in FIXED_CATS:
-            level = "Fixed"
-        elif total == 0 or count == 0:
-            level = "N/A"
-        else:
-            avg = total / count
-            if avg <= 500:
-                level = "High"
-            elif avg <= 1500:
-                level = "Medium"
-            else:
-                level = "Low"
-
-        results.append({
-            "category": cat,
-            "efficiency": level
-        })
-
-    return jsonify(results)
-
 @app.route("/savings", methods=["GET"])
 @jwt_required()
 def get_savings():

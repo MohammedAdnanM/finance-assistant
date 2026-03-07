@@ -107,12 +107,7 @@ Note: All following endpoints require `Authorization: Bearer <token>` header.
 *   Description: Identifies overspending categories.
 *   Response: `[{"category": "Food", "message": "Spending is ₹500 above average..."}, ...]`
 
-### Category Efficiency
-*   Endpoint: `GET /category-efficiency`
-*   Query Params: `?month=YYYY-MM` (optional)
-*   Description: Rates spending efficiency per category based on average transaction size. Labels fixed costs as "Fixed".
-*   Response: `[{"category": "Rent", "efficiency": "Fixed"}, {"category": "Food", "efficiency": "High"}]`
-
+### Purchase Advisory
 *   Endpoint: `POST /necessity-score`
 *   Body: `{"type": "need", "frequency": "high", "amount": 100}`
 *   Response: `{"score": 85, "decision": "BUY", "context": {"spent": 450, "budget": 1000, "impact": 10.0}}`
