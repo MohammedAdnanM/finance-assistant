@@ -214,7 +214,8 @@ def financial_coach_reply(user_id, message):
         msg = message.lower()
         if "budget" in msg or "how am i doing" in msg:
             this_month = datetime.now().strftime("%Y-%m")
-            budget_row = cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, this_month,)).fetchone()
+            cur.execute(f"SELECT amount FROM budget WHERE user_id={PLACEHOLDER} AND month={PLACEHOLDER}", (user_id, this_month,))
+            budget_row = cur.fetchone()
             
             # Calculate current month's spending manually
             current_spent = sum(r[2] for r in rows if r[0][:7] == this_month and r[3] == 'expense')
